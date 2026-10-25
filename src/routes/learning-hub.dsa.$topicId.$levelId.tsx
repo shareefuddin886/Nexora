@@ -78,7 +78,9 @@ function LessonView({ topicId, levelId }: { topicId: string; levelId: string }) 
   const hasCoding = level.requiresCoding && Boolean(level.codingChallenge);
 
   const handleQuizPassed = (score: number) => {
-    markQuizCompleted(topicId, levelId, score, true);
+    // Store the quiz score as a percentage so it compares across levels.
+    const percent = Math.round((score / level.quiz.questions.length) * 100);
+    markQuizCompleted(topicId, levelId, percent, true);
     toast.success(`Quiz passed: ${score}/${level.quiz.questions.length}`);
   };
 

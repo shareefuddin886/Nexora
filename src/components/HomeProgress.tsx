@@ -13,15 +13,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { getAllLevels } from "@/lib/dsa-curriculum";
-
-// Each module keeps its own accent so the cards are easy to tell apart;
-// gold stays the brand colour for primary actions.
-const TONES = {
-  dsa: "#f2b544",
-  assess: "#60a5fa",
-  interview: "#a78bfa",
-  resume: "#34d399",
-} as const;
+import { TONES } from "@/lib/module-tones";
 
 type Activity = { at: string; label: string; score: number | null; tone: string; icon: LucideIcon };
 
@@ -86,7 +78,7 @@ async function loadProgress(userId: string): Promise<Progress> {
     })),
     ...interviews.map((x) => ({
       at: x.completed_at,
-      label: `${x.interview_type} mock interview · ${x.difficulty}`,
+      label: `${x.interview_type.toLowerCase() === "hr" ? "HR" : x.interview_type.charAt(0).toUpperCase() + x.interview_type.slice(1)} mock interview · ${x.difficulty}`,
       score: x.score,
       tone: TONES.interview,
       icon: MessagesSquare,
@@ -280,7 +272,7 @@ export function HomeProgress() {
                     <r.icon className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm capitalize">{r.label}</span>
+                    <span className="block truncate text-sm">{r.label}</span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(r.at).toLocaleDateString(undefined, {
                         day: "numeric",

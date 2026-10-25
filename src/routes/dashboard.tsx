@@ -1,20 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  Award,
+  ArrowRight,
   BookOpen,
   BrainCircuit,
   CheckCircle2,
-  Flame,
+  Clock3,
   FileText,
+  Flame,
   Loader2,
   MessagesSquare,
   ScanSearch,
   type LucideIcon,
 } from "lucide-react";
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Line,
   LineChart,
@@ -27,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { dsaTopics, getAllLevels } from "@/lib/dsa-curriculum";
+import { TONES, tint } from "@/lib/module-tones";
 import { AuthModal } from "@/components/AuthModal";
 
 export const Route = createFileRoute("/dashboard")({
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/dashboard")({
 
 type DashboardData = {
   assessments: Tables<"skill_assessments">[];
-  assessmentResults: Pick<Tables<"assessment_results">, "weak_topics" | "strengths">[];
+  assessmentResults: Pick<Tables<"assessment_results">, "weak_topics">[];
   interviews: Tables<"mock_interviews">[];
   interviewReports: Pick<Tables<"interview_reports">, "strengths" | "weaknesses">[];
   dsaLevels: Tables<"dsa_level_progress">[];
@@ -53,7 +53,7 @@ async function loadDashboard(userId: string): Promise<DashboardData> {
   };
   const [a, ar, i, ir, dl, da, s, rv, rs] = await Promise.all([
     supabase.from("skill_assessments").select("*").eq("user_id", userId).order("completed_at"),
-    supabase.from("assessment_results").select("weak_topics, strengths").eq("user_id", userId),
+    supabase.from("assessment_results").select("weak_topics").eq("user_id", userId),
     supabase.from("mock_interviews").select("*").eq("user_id", userId).order("completed_at"),
     supabase.from("interview_reports").select("strengths, weaknesses").eq("user_id", userId),
     supabase.from("dsa_level_progress").select("*").eq("user_id", userId),
@@ -79,28 +79,24 @@ async function loadDashboard(userId: string): Promise<DashboardData> {
   };
 }
 
+// "hr" -> "HR", "technical" -> "Technical"; other text keeps its own casing.
+const label = (s: string) =>
+  s.toLowerCase() === "hr" ? "HR" : s.charAt(0).toUpperCase() + s.slice(1);
+
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 const avg = (xs: number[]) =>
   xs.length ? Math.round(xs.reduce((s, x) => s + x, 0) / xs.length) : null;
 
-// Count how often each string appears across JSON arrays of strings/objects.
-function tally(lists: unknown[], limit = 6) {
+// Most frequent labels across JSON arrays of strings or {topic|title|name} objects.
+function tally(lists: unknown[], limit = 6): [string, number][] {
   const counts = new Map<string, number>();
   for (const list of lists) {
     if (!Array.isArray(list)) continue;
     for (const item of list) {
+      const obj = item && typeof item === "object" ? (item as Record<string, unknown>) : null;
       const label =
-        typeof item === "string"
-          ? item
-          : item && typeof item === "object"
-            ? String(
-                (item as Record<string, unknown>).topic ??
-                  (item as Record<string, unknown>).title ??
-                  (item as Record<string, unknown>).name ??
-                  "",
-              )
-            : "";
+        typeof item === "string" ? item : String(obj?.topic ?? obj?.title ?? obj?.name ?? "");
       if (label) counts.set(label, (counts.get(label) ?? 0) + 1);
     }
   }
@@ -136,73 +132,78 @@ function DashboardPage() {
   const view = useMemo(() => {
     if (!data) return null;
     const allLevels = getAllLevels();
-    const completedLevels = data.dsaLevels.filter((l) => l.completed);
-    const dsaPercent = allLevels.length
-      ? Math.round((completedLevels.length / allLevels.length) * 100)
-      : 0;
-
+    const doneKeys = new Set(
+      data.dsaLevels.filter((l) => l.completed).map((l) => `${l.topic_id}_${l.level_id}`),
+    );
     const activityDates = [
       ...data.assessments.map((x) => x.completed_at),
       ...data.interviews.map((x) => x.completed_at),
       ...data.dsaAttempts.map((x) => x.created_at),
       ...data.solved.map((x) => x.solved_at),
       ...data.reviews.map((x) => x.created_at),
-    ];
+    ].sort();
 
     const byTech = new Map<string, number[]>();
     for (const a of data.assessments) {
-      const list = byTech.get(a.technology) ?? [];
-      list.push(Number(a.score ?? 0));
-      byTech.set(a.technology, list);
+      byTech.set(a.technology, [...(byTech.get(a.technology) ?? []), Number(a.score ?? 0)]);
     }
 
     const recent = [
       ...data.assessments.map((x) => ({
         at: x.completed_at,
         icon: BrainCircuit,
-        text: `${x.technology} assessment (${x.difficulty})`,
+        tone: TONES.assess,
+        text: `${x.technology} assessment · ${x.difficulty}`,
         score: x.score,
       })),
       ...data.interviews.map((x) => ({
         at: x.completed_at,
         icon: MessagesSquare,
-        text: `${x.interview_type} mock interview (${x.difficulty})`,
+        tone: TONES.interview,
+        text: `${label(x.interview_type)} mock interview · ${x.difficulty}`,
         score: x.score,
       })),
       ...data.dsaAttempts.map((x) => ({
         at: x.created_at,
         icon: BookOpen,
-        text: `DSA quiz · ${dsaTopics.find((t) => t.id === x.topic_id)?.title ?? x.topic_id} ${x.passed ? "passed" : "attempted"}`,
+        tone: TONES.dsa,
+        text: `${dsaTopics.find((t) => t.id === x.topic_id)?.title ?? x.topic_id} quiz ${x.passed ? "passed" : "attempted"}`,
         score: x.score,
       })),
       ...data.reviews.map((x) => ({
         at: x.created_at,
         icon: ScanSearch,
+        tone: TONES.resume,
         text: `Resume review · ${x.file_name ?? "resume"}`,
         score: x.overall_score,
       })),
     ]
       .sort((x, y) => y.at.localeCompare(x.at))
-      .slice(0, 8);
+      .slice(0, 6);
 
-    const nextLevel = allLevels.find(
-      (l) =>
-        !data.dsaLevels.some(
-          (d) => d.topic_id === l.topicId && d.level_id === l.level.id && d.completed,
-        ),
-    );
+    const assessScores = data.assessments.map((a) => Number(a.score ?? 0));
+    const interviewScores = data.interviews.map((a) => Number(a.score ?? 0));
+    const atsScores = data.reviews.map((r) => Number(r.overall_score ?? 0));
 
     return {
-      dsaPercent,
-      completedLevels: completedLevels.length,
+      levelsDone: doneKeys.size,
       totalLevels: allLevels.length,
+      nextLevel: allLevels.find((l) => !doneKeys.has(`${l.topicId}_${l.level.id}`)),
       streak: streak(activityDates),
-      lastActive: activityDates.sort().at(-1) ?? null,
-      assessmentTrend: data.assessments.map((a) => ({
+      lastActive: activityDates.at(-1) ?? null,
+      quizAccuracy: avg(data.dsaAttempts.map((x) => Number(x.score))),
+      topics: dsaTopics.map((t) => ({
+        id: t.id,
+        title: t.title,
+        done: t.levels.filter((lvl) => doneKeys.has(`${t.id}_${lvl.id}`)).length,
+        total: t.levels.length,
+      })),
+      assessTrend: data.assessments.map((a) => ({
         date: fmtDate(a.completed_at),
         score: Number(a.score ?? 0),
-        tech: a.technology,
+        label: a.technology,
       })),
+      assessAvg: avg(assessScores),
       techRows: [...byTech.entries()].map(([tech, scores]) => ({
         tech,
         attempts: scores.length,
@@ -213,34 +214,24 @@ function DashboardPage() {
       interviewTrend: data.interviews.map((x) => ({
         date: fmtDate(x.completed_at),
         score: Number(x.score ?? 0),
+        label: label(x.interview_type),
       })),
-      interviewStrengths: tally(
+      interviewAvg: avg(interviewScores),
+      strengths: tally(
         data.interviewReports.map((r) => r.strengths),
         4,
       ),
-      interviewWeaknesses: tally(
+      weaknesses: tally(
         data.interviewReports.map((r) => r.weaknesses),
         4,
       ),
-      topicBars: dsaTopics.map((t) => ({
-        topic: t.title,
-        percent: t.levels.length
-          ? Math.round(
-              (t.levels.filter((lvl) =>
-                completedLevels.some((d) => d.topic_id === t.id && d.level_id === lvl.id),
-              ).length /
-                t.levels.length) *
-                100,
-            )
-          : 0,
-      })),
-      quizAccuracy: avg(data.dsaAttempts.map((x) => Number(x.score))),
       reviewTrend: data.reviews.map((x) => ({
         date: fmtDate(x.created_at),
         score: Number(x.overall_score ?? 0),
+        label: x.file_name ?? "Resume",
       })),
+      bestAts: atsScores.length ? Math.max(...atsScores) : null,
       recent,
-      nextLevel,
     };
   }, [data]);
 
@@ -271,190 +262,287 @@ function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 md:px-8 md:py-14">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Dashboard</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-          Welcome back, {name}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {view.lastActive
-            ? `Last active ${fmtDate(view.lastActive)}`
-            : "No activity yet — pick a module to get started."}
-        </p>
+      {/* Header */}
+      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Dashboard
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+            Welcome back, {name}
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            {view.streak > 0 && (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                style={{ background: tint(TONES.dsa, 0.12), color: TONES.dsa }}
+              >
+                <Flame className="h-3.5 w-3.5" /> {view.streak}-day streak
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 className="h-3.5 w-3.5" />
+              {view.lastActive ? `Last active ${fmtDate(view.lastActive)}` : "No activity yet"}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/skill-assessment"
+            className="inline-flex items-center gap-2 rounded-xl glass px-4 py-2.5 text-sm font-medium hover:border-primary/50"
+          >
+            <BrainCircuit className="h-4 w-4" /> Take an assessment
+          </Link>
+          {view.nextLevel && (
+            <Link
+              to="/learning-hub/dsa/$topicId/$levelId"
+              params={{ topicId: view.nextLevel.topicId, levelId: view.nextLevel.level.id }}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+              style={{ background: "var(--gradient-gold)" }}
+            >
+              Continue learning <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
       </header>
 
-      {/* Overview */}
-      <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <Stat icon={Flame} label="Day streak" value={view.streak} />
-        <Stat icon={BrainCircuit} label="Assessments" value={data.assessments.length} />
-        <Stat icon={MessagesSquare} label="Interviews" value={data.interviews.length} />
-        <Stat icon={BookOpen} label="DSA complete" value={`${view.dsaPercent}%`} />
-        <Stat icon={CheckCircle2} label="Problems solved" value={data.solved.length} />
-        <Stat
-          icon={ScanSearch}
-          label="Latest ATS score"
-          value={
-            data.reviews.length
-              ? Number(data.reviews[data.reviews.length - 1].overall_score ?? 0)
-              : "—"
-          }
+      {/* Summary tiles */}
+      <section className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+        <StatTile
+          tone={TONES.dsa}
+          icon={BookOpen}
+          label="DSA levels"
+          value={`${view.levelsDone}`}
+          unit={`/ ${view.totalLevels}`}
+          percent={(view.levelsDone / view.totalLevels) * 100}
+          sub={`${data.solved.length} problems solved`}
+        />
+        <StatTile
+          tone={TONES.assess}
+          icon={BrainCircuit}
+          label="Assessments"
+          value={`${data.assessments.length}`}
+          unit={data.assessments.length === 1 ? "test" : "tests"}
+          percent={view.assessAvg ?? 0}
+          sub={view.assessAvg !== null ? `Average ${view.assessAvg}%` : "No tests yet"}
+        />
+        <StatTile
+          tone={TONES.interview}
+          icon={MessagesSquare}
+          label="Mock interviews"
+          value={`${data.interviews.length}`}
+          unit={data.interviews.length === 1 ? "session" : "sessions"}
+          percent={view.interviewAvg ?? 0}
+          sub={view.interviewAvg !== null ? `Average ${view.interviewAvg}%` : "No sessions yet"}
+        />
+        <StatTile
+          tone={TONES.resume}
+          icon={FileText}
+          label="Resume"
+          value={view.bestAts !== null ? `${view.bestAts}` : "—"}
+          unit={view.bestAts !== null ? "best ATS" : ""}
+          percent={view.bestAts ?? 0}
+          sub={`${data.resumes.length ? "Resume built" : "Not built yet"} · ${data.reviews.length} ${data.reviews.length === 1 ? "review" : "reviews"}`}
         />
       </section>
 
+      {/* Continue learning */}
       {view.nextLevel && (
         <Link
           to="/learning-hub/dsa/$topicId/$levelId"
           params={{ topicId: view.nextLevel.topicId, levelId: view.nextLevel.level.id }}
-          className="mt-4 flex items-center justify-between gap-4 rounded-2xl glass p-4 transition hover:border-primary/50"
+          className="group mt-4 flex items-center gap-4 rounded-2xl border border-border/60 bg-surface/50 p-4 transition hover:border-primary/50 md:p-5"
+          style={{
+            backgroundImage: `linear-gradient(90deg, ${tint(TONES.dsa, 0.1)}, transparent 60%)`,
+          }}
         >
-          <div>
-            <p className="text-xs text-muted-foreground">Continue learning</p>
-            <p className="mt-0.5 font-medium">
+          <span
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+            style={{ background: tint(TONES.dsa, 0.15), color: TONES.dsa }}
+          >
+            <BookOpen className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-muted-foreground">Up next in your DSA roadmap</p>
+            <p className="truncate font-medium">
               {view.nextLevel.topic.title} · {view.nextLevel.level.title}
             </p>
           </div>
-          <span className="text-sm font-semibold text-primary">Resume →</span>
+          <span className="hidden items-center gap-1.5 text-sm font-semibold text-primary sm:inline-flex">
+            Start lesson <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+          </span>
         </Link>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Skill assessments */}
-        <Panel
-          title="Skill assessments"
-          icon={BrainCircuit}
-          empty={!data.assessments.length}
-          emptyHref="/skill-assessment"
-        >
-          <TrendChart data={view.assessmentTrend} />
-          <table className="mt-4 w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground">
-              <tr>
-                <th className="py-1.5 font-medium">Technology</th>
-                <th className="py-1.5 text-right font-medium">Attempts</th>
-                <th className="py-1.5 text-right font-medium">Best</th>
-                <th className="py-1.5 text-right font-medium">Latest</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.techRows.map((r) => (
-                <tr key={r.tech} className="border-t border-border/50">
-                  <td className="py-2">{r.tech}</td>
-                  <td className="py-2 text-right tabular-nums">{r.attempts}</td>
-                  <td className="py-2 text-right tabular-nums">{r.best}%</td>
-                  <td className="py-2 text-right tabular-nums">{r.latest}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {view.weakTopics.length > 0 && (
-            <ChipList title="Topics to work on" items={view.weakTopics} />
+        <Panel tone={TONES.assess} icon={BrainCircuit} title="Skill assessments">
+          {data.assessments.length === 0 ? (
+            <EmptyState
+              tone={TONES.assess}
+              icon={BrainCircuit}
+              text="Find out where you stand with a 10-minute AI skill test."
+              cta="Take your first test"
+              to="/skill-assessment"
+            />
+          ) : (
+            <>
+              <ScoreTrend points={view.assessTrend} tone={TONES.assess} />
+              <table className="mt-5 w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="pb-2 font-medium">Technology</th>
+                    <th className="pb-2 text-right font-medium">Tests</th>
+                    <th className="pb-2 text-right font-medium">Best</th>
+                    <th className="pb-2 text-right font-medium">Latest</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {view.techRows.map((r) => (
+                    <tr key={r.tech} className="border-t border-border/50">
+                      <td className="py-2.5">{r.tech}</td>
+                      <td className="py-2.5 text-right tabular-nums">{r.attempts}</td>
+                      <td className="py-2.5 text-right tabular-nums">{r.best}%</td>
+                      <td
+                        className="py-2.5 text-right font-semibold tabular-nums"
+                        style={{ color: TONES.assess }}
+                      >
+                        {r.latest}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {view.weakTopics.length > 0 && (
+                <ChipList title="Topics to work on" items={view.weakTopics} tone="#f87171" />
+              )}
+            </>
           )}
         </Panel>
 
         {/* Mock interviews */}
-        <Panel
-          title="Mock interviews"
-          icon={MessagesSquare}
-          empty={!data.interviews.length}
-          emptyHref="/mock-interview"
-        >
-          <TrendChart data={view.interviewTrend} />
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <ChipList title="Strengths" items={view.interviewStrengths} />
-            <ChipList title="To improve" items={view.interviewWeaknesses} />
-          </div>
+        <Panel tone={TONES.interview} icon={MessagesSquare} title="Mock interviews">
+          {data.interviews.length === 0 ? (
+            <EmptyState
+              tone={TONES.interview}
+              icon={MessagesSquare}
+              text="Practise a technical or HR interview and get a full feedback report."
+              cta="Start your first interview"
+              to="/mock-interview"
+            />
+          ) : (
+            <>
+              <ScoreTrend points={view.interviewTrend} tone={TONES.interview} />
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <ChipList title="Strengths" items={view.strengths} tone="#34d399" />
+                <ChipList title="To improve" items={view.weaknesses} tone="#f87171" />
+              </div>
+            </>
+          )}
         </Panel>
 
         {/* DSA */}
-        <Panel title="DSA learning hub" icon={BookOpen} empty={false}>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <MiniStat label="Levels done" value={`${view.completedLevels}/${view.totalLevels}`} />
+        <Panel tone={TONES.dsa} icon={BookOpen} title="DSA learning hub" className="lg:col-span-2">
+          <div className="grid grid-cols-3 gap-3">
+            <MiniStat label="Levels done" value={`${view.levelsDone}/${view.totalLevels}`} />
             <MiniStat
-              label="Quiz accuracy"
+              label="Avg. quiz score"
               value={view.quizAccuracy !== null ? `${view.quizAccuracy}%` : "—"}
             />
-            <MiniStat label="Problems solved" value={data.solved.length} />
+            <MiniStat label="Problems solved" value={`${data.solved.length}`} />
           </div>
-          <div className="mt-4 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={view.topicBars} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <CartesianGrid horizontal={false} stroke="var(--border)" />
-                <XAxis
-                  type="number"
-                  domain={[0, 100]}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                  unit="%"
-                />
-                <YAxis
-                  type="category"
-                  dataKey="topic"
-                  width={130}
-                  tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-                  interval={0}
-                />
-                <Tooltip content={<ChartTip unit="%" />} cursor={{ fill: "var(--glass)" }} />
-                <Bar
-                  dataKey="percent"
-                  fill="var(--primary)"
-                  radius={[0, 4, 4, 0]}
-                  maxBarSize={14}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
-
-        {/* Resume */}
-        <Panel title="Resume" icon={FileText} empty={false}>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <MiniStat label="Resume built" value={data.resumes.length ? "Yes" : "No"} />
-            <MiniStat label="Reviews" value={data.reviews.length} />
-            <MiniStat
-              label="Best ATS"
-              value={
-                data.reviews.length
-                  ? Math.max(...data.reviews.map((r) => Number(r.overall_score ?? 0)))
-                  : "—"
-              }
-            />
-          </div>
-          {data.reviews.length ? (
-            <TrendChart data={view.reviewTrend} className="mt-4" />
-          ) : (
-            <p className="mt-4 text-sm text-muted-foreground">
-              <Link to="/resume-review" className="text-primary hover:underline">
-                Review your resume
-              </Link>{" "}
-              to start tracking your ATS score.
-            </p>
-          )}
-        </Panel>
-      </div>
-
-      {/* Recent activity */}
-      <section className="mt-6 rounded-2xl glass p-5 md:p-6">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <Award className="h-4 w-4 text-primary" /> Recent activity
-        </h2>
-        {view.recent.length ? (
-          <ul className="mt-4 divide-y divide-border/50">
-            {view.recent.map((r, idx) => (
-              <li key={idx} className="flex items-center gap-3 py-2.5 text-sm">
-                <r.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1 truncate">{r.text}</span>
-                {r.score !== null && (
-                  <span className="tabular-nums text-muted-foreground">{Number(r.score)}%</span>
-                )}
-                <span className="w-16 text-right text-xs text-muted-foreground">
-                  {fmtDate(r.at)}
-                </span>
+          <ul className="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+            {view.topics.map((t, idx) => (
+              <li key={t.id}>
+                <Link
+                  to="/learning-hub/dsa"
+                  className="group flex items-center gap-3 rounded-lg py-1"
+                >
+                  <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                    {idx + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-3 text-sm">
+                      <span className="truncate group-hover:text-foreground text-foreground/90">
+                        {t.title}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {t.done === t.total ? (
+                          <CheckCircle2 className="h-4 w-4" style={{ color: "#34d399" }} />
+                        ) : (
+                          `${t.done}/${t.total}`
+                        )}
+                      </span>
+                    </span>
+                    <ProgressBar
+                      percent={(t.done / t.total) * 100}
+                      tone={TONES.dsa}
+                      className="mt-1.5"
+                    />
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">Nothing yet.</p>
-        )}
-      </section>
+        </Panel>
+
+        {/* Resume */}
+        <Panel tone={TONES.resume} icon={FileText} title="Resume">
+          {data.reviews.length === 0 ? (
+            <EmptyState
+              tone={TONES.resume}
+              icon={ScanSearch}
+              text={
+                data.resumes.length
+                  ? "Your resume is built. Get an ATS score and concrete fixes."
+                  : "Build an ATS-friendly resume, then get it reviewed."
+              }
+              cta={data.resumes.length ? "Review your resume" : "Build your resume"}
+              to={data.resumes.length ? "/resume-review" : "/resume-builder"}
+            />
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <MiniStat label="Resume built" value={data.resumes.length ? "Yes" : "No"} />
+                <MiniStat label="Reviews" value={`${data.reviews.length}`} />
+                <MiniStat label="Best ATS" value={`${view.bestAts}`} />
+              </div>
+              <ScoreTrend points={view.reviewTrend} tone={TONES.resume} className="mt-5" />
+            </>
+          )}
+        </Panel>
+
+        {/* Recent activity */}
+        <Panel tone="#9aa4b6" icon={Clock3} title="Recent activity">
+          {view.recent.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Your tests, interviews, quizzes and reviews will show up here.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/50">
+              {view.recent.map((r, idx) => (
+                <li key={idx} className="flex items-center gap-3 py-2.5 text-sm">
+                  <span
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+                    style={{ background: tint(r.tone, 0.12), color: r.tone }}
+                  >
+                    <r.icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{r.text}</span>
+                  {r.score !== null && (
+                    <span className="font-semibold tabular-nums" style={{ color: r.tone }}>
+                      {Number(r.score)}%
+                    </span>
+                  )}
+                  <span className="w-14 text-right text-xs text-muted-foreground">
+                    {fmtDate(r.at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
     </main>
   );
 }
@@ -467,19 +555,72 @@ function CenteredSpinner() {
   );
 }
 
-function Stat({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: ReactNode }) {
+function ProgressBar({
+  percent,
+  tone,
+  className = "",
+}: {
+  percent: number;
+  tone: string;
+  className?: string;
+}) {
   return (
-    <div className="rounded-2xl glass p-4">
-      <Icon className="h-4 w-4 text-primary" />
-      <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
+    <div className={`h-1.5 overflow-hidden rounded-full bg-white/[0.06] ${className}`}>
+      <div
+        className="h-full rounded-full"
+        style={{ width: `${Math.min(100, Math.max(0, percent))}%`, background: tone }}
+      />
+    </div>
+  );
+}
+
+function StatTile({
+  tone,
+  icon: Icon,
+  label,
+  value,
+  unit,
+  percent,
+  sub,
+}: {
+  tone: string;
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  unit: string;
+  percent: number;
+  sub: string;
+}) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl border border-border/60 bg-surface/50 p-4 md:p-5"
+      style={{
+        backgroundImage: `radial-gradient(240px 110px at 0% 0%, ${tint(tone, 0.09)}, transparent 70%)`,
+      }}
+    >
+      <span className="absolute inset-x-0 top-0 h-0.5" style={{ background: tone }} />
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span
+          className="grid h-7 w-7 place-items-center rounded-lg"
+          style={{ background: tint(tone, 0.12), color: tone }}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </span>
+        {label}
+      </div>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span className="text-2xl font-bold tabular-nums md:text-3xl">{value}</span>
+        <span className="text-xs text-muted-foreground md:text-sm">{unit}</span>
+      </div>
+      <ProgressBar percent={percent} tone={tone} className="mt-3" />
+      <p className="mt-2 truncate text-xs text-muted-foreground">{sub}</p>
     </div>
   );
 }
 
 function MiniStat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl bg-surface/60 p-3">
+    <div className="rounded-xl border border-border/50 bg-background/40 p-3 text-center">
       <div className="text-lg font-semibold tabular-nums">{value}</div>
       <div className="text-[11px] text-muted-foreground">{label}</div>
     </div>
@@ -487,51 +628,91 @@ function MiniStat({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function Panel({
-  title,
+  tone,
   icon: Icon,
-  empty,
-  emptyHref,
+  title,
+  className = "",
   children,
 }: {
-  title: string;
+  tone: string;
   icon: LucideIcon;
-  empty: boolean;
-  emptyHref?: string;
+  title: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl glass p-5 md:p-6">
-      <h2 className="flex items-center gap-2 font-semibold">
-        <Icon className="h-4 w-4 text-primary" /> {title}
+    <section
+      className={`flex flex-col rounded-2xl border border-border/60 bg-surface/40 p-5 md:p-6 ${className}`}
+    >
+      <h2 className="flex items-center gap-2.5 text-base font-semibold">
+        <span
+          className="grid h-8 w-8 place-items-center rounded-lg"
+          style={{ background: tint(tone, 0.12), color: tone }}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        {title}
       </h2>
-      <div className="mt-4">
-        {empty ? (
-          <p className="text-sm text-muted-foreground">
-            No attempts yet.{" "}
-            {emptyHref && (
-              <a href={emptyHref} className="text-primary hover:underline">
-                Start one →
-              </a>
-            )}
-          </p>
-        ) : (
-          children
-        )}
-      </div>
+      <div className="mt-5 flex flex-1 flex-col">{children}</div>
     </section>
   );
 }
 
-function ChipList({ title, items }: { title: string; items: [string, number][] }) {
+function EmptyState({
+  tone,
+  icon: Icon,
+  text,
+  cta,
+  to,
+}: {
+  tone: string;
+  icon: LucideIcon;
+  text: string;
+  cta: string;
+  to: string;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-border/60 px-6 py-10 text-center">
+      <span
+        className="grid h-12 w-12 place-items-center rounded-2xl"
+        style={{ background: tint(tone, 0.12), color: tone }}
+      >
+        <Icon className="h-6 w-6" />
+      </span>
+      <p className="mt-4 max-w-xs text-sm text-muted-foreground">{text}</p>
+      <a
+        href={to}
+        className="mt-5 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold"
+        style={{ background: tint(tone, 0.15), color: tone }}
+      >
+        {cta} <ArrowRight className="h-4 w-4" />
+      </a>
+    </div>
+  );
+}
+
+function ChipList({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: [string, number][];
+  tone: string;
+}) {
   if (!items.length) return null;
   return (
-    <div className="mt-4">
+    <div className="mt-5">
       <p className="text-xs font-medium text-muted-foreground">{title}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {items.map(([label, count]) => (
-          <span key={label} className="rounded-full border border-border/60 px-2.5 py-1 text-xs">
+          <span
+            key={label}
+            className="rounded-full px-2.5 py-1 text-xs"
+            style={{ background: tint(tone, 0.1), color: tone }}
+          >
             {label}
-            {count > 1 && <span className="ml-1 text-muted-foreground">×{count}</span>}
+            {count > 1 && <span className="ml-1 opacity-70">×{count}</span>}
           </span>
         ))}
       </div>
@@ -539,58 +720,78 @@ function ChipList({ title, items }: { title: string; items: [string, number][] }
   );
 }
 
-type ChartTipProps = {
-  active?: boolean;
-  label?: string;
-  unit?: string;
-  payload?: { value: number; payload: { tech?: string; topic?: string } }[];
-};
+type TrendPoint = { date: string; score: number; label: string };
 
-function ChartTip({ active, payload, label, unit = "" }: ChartTipProps) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0];
-  return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-lg">
-      <div className="text-muted-foreground">{p.payload.tech ?? label ?? p.payload.topic}</div>
-      <div className="mt-0.5 font-semibold tabular-nums">
-        {p.value}
-        {unit}
-      </div>
-    </div>
-  );
-}
-
-function TrendChart({
-  data,
+// One result shows as a highlighted score; two or more as a line chart.
+function ScoreTrend({
+  points,
+  tone,
   className = "",
 }: {
-  data: { date: string; score: number }[];
+  points: TrendPoint[];
+  tone: string;
   className?: string;
 }) {
+  if (points.length === 0) return null;
+  const last = points[points.length - 1];
+
+  if (points.length === 1) {
+    return (
+      <div
+        className={`flex items-center gap-4 rounded-xl border border-border/50 bg-background/40 p-4 ${className}`}
+      >
+        <span className="text-4xl font-bold tabular-nums" style={{ color: tone }}>
+          {last.score}%
+        </span>
+        <span className="text-sm text-muted-foreground">
+          <span className="block font-medium text-foreground">{last.label}</span>
+          {last.date} · do another one to see your trend
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className={`h-48 ${className}`}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ left: -16, right: 8, top: 8 }}>
+        <LineChart data={points} margin={{ left: -20, right: 8, top: 8 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="date"
             tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             tickLine={false}
+            axisLine={false}
           />
           <YAxis
             domain={[0, 100]}
+            ticks={[0, 50, 100]}
             tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
             tickLine={false}
             axisLine={false}
           />
-          <Tooltip content={<ChartTip />} cursor={{ stroke: "var(--border)" }} />
+          <Tooltip
+            cursor={{ stroke: "var(--border)" }}
+            content={({ active, payload }) =>
+              active && payload?.length ? (
+                <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-lg">
+                  <div className="text-muted-foreground">
+                    {(payload[0].payload as TrendPoint).label} ·{" "}
+                    {(payload[0].payload as TrendPoint).date}
+                  </div>
+                  <div className="mt-0.5 font-semibold tabular-nums" style={{ color: tone }}>
+                    {payload[0].value}%
+                  </div>
+                </div>
+              ) : null
+            }
+          />
           <Line
             type="monotone"
             dataKey="score"
-            stroke="var(--primary)"
-            strokeWidth={2}
-            dot={{ r: 3, fill: "var(--primary)" }}
-            activeDot={{ r: 5 }}
+            stroke={tone}
+            strokeWidth={2.5}
+            dot={{ r: 3.5, fill: tone, strokeWidth: 0 }}
+            activeDot={{ r: 5.5 }}
           />
         </LineChart>
       </ResponsiveContainer>
