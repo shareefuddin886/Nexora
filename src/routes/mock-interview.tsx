@@ -75,9 +75,23 @@ function MockInterviewPage() {
   const [config, setConfig] = useState<InterviewConfig | null>(null);
   const [history, setHistory] = useState<InterviewTurn[]>([]);
   const [report, setReport] = useState<Awaited<ReturnType<typeof generateReport>> | null>(null);
+  const [reportError, setReportError] = useState(false);
+
+  const buildReport = async (cfg: InterviewConfig, turns: InterviewTurn[]) => {
+    setReportError(false);
+    try {
+      const r = await generateReport({ data: { config: cfg, history: turns } });
+      setReport(r);
+      return r;
+    } catch (e) {
+      console.error(e);
+      setReportError(true);
+      return null;
+    }
+  };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-glow" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-20 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]" />
 
@@ -114,10 +128,8 @@ function MockInterviewPage() {
               onComplete={async (turns) => {
                 setHistory(turns);
                 setPhase("results");
-                try {
-                  const r = await generateReport({ data: { config, history: turns } });
-                  setReport(r);
-
+                const r = await buildReport(config, turns);
+                if (r) {
                   // Persist to Supabase if authenticated
                   try {
                     const { data: sessionData } = await supabase.auth.getSession();
@@ -149,8 +161,6 @@ function MockInterviewPage() {
                   } catch (dbErr) {
                     console.warn("Failed to persist mock interview to Supabase:", dbErr);
                   }
-                } catch (e) {
-                  console.error(e);
                 }
               }}
               onExit={() => setPhase("setup")}
@@ -168,6 +178,8 @@ function MockInterviewPage() {
             <ResultsView
               report={report}
               history={history}
+              error={reportError}
+              onRetry={() => void buildReport(config, history)}
               onRestart={() => {
                 setPhase("setup");
                 setReport(null);
@@ -184,6 +196,7 @@ function MockInterviewPage() {
 
 function SetupView({ onStart }: { onStart: (cfg: InterviewConfig) => void }) {
   const [role, setRole] = useState<string>("Java Developer");
+  const [customRole, setCustomRole] = useState("");
   const [type, setType] = useState<InterviewConfig["type"]>("technical");
   const [difficulty, setDifficulty] = useState<InterviewConfig["difficulty"]>("medium");
   const [duration, setDuration] = useState<number>(15);
@@ -203,8 +216,10 @@ function SetupView({ onStart }: { onStart: (cfg: InterviewConfig) => void }) {
   const handleStart = () => {
     setStarting(true);
     const effectiveSkills = skills.length ? skills : skillsForRole(role);
+    const effectiveRole =
+      role === "Custom Role" ? customRole.trim().slice(0, 100) || "Software Engineer" : role;
     onStart({
-      role,
+      role: effectiveRole,
       type,
       difficulty,
       duration,
@@ -219,7 +234,7 @@ function SetupView({ onStart }: { onStart: (cfg: InterviewConfig) => void }) {
 
 
   return (
-    <section className="mx-auto max-w-7xl px-4 md:px-8 py-16 md:py-24">
+    <section className="mx-auto max-w-7xl px-4 md:px-8 py-10 md:py-14">
       {/* Hero */}
       <div className="grid lg:grid-cols-[1.1fr_.9fr] gap-12 items-center">
         <div>
@@ -290,6 +305,16 @@ function SetupView({ onStart }: { onStart: (cfg: InterviewConfig) => void }) {
               </select>
               <ChevronRight className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 rotate-90 text-muted-foreground" />
             </div>
+            {role === "Custom Role" && (
+              <input
+                value={customRole}
+                onChange={(e) => setCustomRole(e.target.value)}
+                maxLength={100}
+                placeholder="e.g. DevOps Engineer"
+                aria-label="Your role"
+                className="mt-2 w-full rounded-xl bg-surface border border-border/60 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            )}
           </Field>
 
           {/* Language */}
@@ -506,7 +531,7 @@ function HeroIllustration() {
               <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70" />
               <span className="h-2.5 w-2.5 rounded-full bg-primary/80" />
             </div>
-            <div className="text-[10px] text-muted-foreground">Interview Room · Live</div>
+            <div className="text-[10px] text-muted-foreground">Example session</div>
           </div>
           <div className="mt-5 rounded-xl bg-surface/70 border border-border/60 p-3">
             <div className="text-[10px] uppercase tracking-widest text-primary">
@@ -543,7 +568,7 @@ function HeroIllustration() {
 
 /* ============================== SESSION VIEW ============================== */
 
-type Feedback = Awaited<ReturnType<typeof evaluateAnswer>>;
+type Feedback = Awaited<ReturnType<typeof evaluateAnswer>> & { unscored?: boolean };
 
 function SessionView({
   config,
@@ -789,13 +814,14 @@ function SessionView({
     } catch (e) {
       console.error(e);
       setFeedback({
-        score: skipped ? 0 : 5,
+        score: 0,
+        unscored: !skipped,
         strengths: [],
         improvements: ["Feedback could not be generated for this answer."],
         suggestion: "Continue with the interview — your answer has been recorded.",
         isLast,
       });
-      newTurn.score = skipped ? 0 : 5;
+      newTurn.score = skipped ? 0 : undefined;
     } finally {
       setHistory((h) => {
         const next = [...h, newTurn];
@@ -828,9 +854,9 @@ function SessionView({
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)]">
+    <div className="min-h-[calc(100vh-5rem)]">
       {/* Top bar */}
-      <div className="sticky top-16 z-20 backdrop-blur-xl bg-background/70 border-b border-border/60">
+      <div className="sticky top-20 z-20 backdrop-blur-xl bg-background/70 border-b border-border/60">
         <div className="mx-auto max-w-6xl px-4 md:px-8 py-3 flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-3 text-xs">
             <span className="rounded-full bg-surface border border-border/60 px-3 py-1.5 font-medium">
@@ -1028,7 +1054,7 @@ function SessionView({
 }
 
 function FeedbackCard({ feedback, onNext }: { feedback: Feedback; onNext: () => void }) {
-  const scorePct = (feedback.score / 10) * 100;
+  const scorePct = feedback.unscored ? 0 : (feedback.score / 10) * 100;
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -1036,13 +1062,15 @@ function FeedbackCard({ feedback, onNext }: { feedback: Feedback; onNext: () => 
       className="glass rounded-3xl p-6 md:p-10 shadow-card"
     >
       <div className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-10">
-        <ScoreRing value={scorePct} label={`${feedback.score.toFixed(1)}/10`} />
+        <ScoreRing value={scorePct} label={feedback.unscored ? "—" : `${feedback.score.toFixed(1)}/10`} />
         <div className="flex-1">
           <div className="inline-flex items-center gap-1.5 rounded-full glass px-3 py-1 text-[11px] uppercase tracking-widest text-primary">
             <Award className="h-3 w-3" /> AI Feedback
           </div>
           <h3 className="mt-3 text-2xl font-semibold tracking-tight">
-            {feedback.score >= 8
+            {feedback.unscored
+              ? "Answer recorded"
+              : feedback.score >= 8
               ? "Strong answer"
               : feedback.score >= 5
               ? "Solid — with room to grow"
@@ -1150,10 +1178,14 @@ type Report = Awaited<ReturnType<typeof generateReport>>;
 function ResultsView({
   report,
   history,
+  error,
+  onRetry,
   onRestart,
 }: {
   report: Report | null;
   history: InterviewTurn[];
+  error: boolean;
+  onRetry: () => void;
   onRestart: () => void;
 }) {
   const avg = useMemo(() => {
@@ -1161,6 +1193,32 @@ function ResultsView({
     if (!scored.length) return 0;
     return scored.reduce((a, b) => a + (b.score ?? 0), 0) / scored.length;
   }, [history]);
+
+  if (!report && error) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 md:px-8 py-24 text-center">
+        <h2 className="text-3xl font-semibold tracking-tight">We couldn't generate your report</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The AI service didn't respond. Your answers are still here — try again.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <button
+            onClick={onRetry}
+            className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground shadow-glow"
+            style={{ background: "var(--gradient-gold)" }}
+          >
+            Try again
+          </button>
+          <button
+            onClick={onRestart}
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-6 py-3 text-sm text-foreground"
+          >
+            Start over
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!report) {
     return (
@@ -1293,7 +1351,7 @@ function ResultsView({
           Take Another Interview <ChevronRight className="h-4 w-4" />
         </button>
         <Link
-          to="/"
+          to="/dashboard"
           className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-6 py-3 text-sm text-foreground"
         >
           Return to Dashboard

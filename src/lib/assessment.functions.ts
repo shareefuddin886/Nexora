@@ -1,30 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
 import { z } from "zod";
-import { getGeminiModel, generateWithGeminiFallback } from "./gemini.server";
+import { generateWithGeminiFallback, AiUserError } from "./gemini.server";
 
 const QuestionSchema = z.object({
-  id: z.string(),
+  id: z.string().max(40),
   type: z.enum(["mcq", "code", "scenario"]),
-  topic: z.string(),
-  prompt: z.string(),
-  code: z.string().nullable().optional(),
-  options: z.array(z.string()).nullable().optional(),
+  topic: z.string().max(200),
+  prompt: z.string().max(4000),
+  code: z.string().max(6000).nullable().optional(),
+  options: z.array(z.string().max(1000)).max(6).nullable().optional(),
   correctIndex: z.number().nullable().optional(),
-  correctAnswer: z.string().nullable().optional(),
-  explanation: z.string(),
+  correctAnswer: z.string().max(4000).nullable().optional(),
+  explanation: z.string().max(4000),
 });
 
 export type AssessmentQuestion = z.infer<typeof QuestionSchema>;
 
 const GenInput = z.object({
-  technology: z.string().min(1),
+  technology: z.string().min(1).max(60),
   difficulty: z.enum(["easy", "medium", "hard"]),
   count: z.number().min(3).max(20),
   mix: z.object({
-    mcq: z.number(),
-    code: z.number(),
-    scenario: z.number(),
+    mcq: z.number().int().min(0).max(20),
+    code: z.number().int().min(0).max(20),
+    scenario: z.number().int().min(0).max(20),
   }),
   mode: z
     .enum(["mixed", "mcq", "coding", "scenario", "debugging", "rapid"])
@@ -34,7 +33,7 @@ const GenInput = z.object({
 });
 
 export const generateAssessment = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => GenInput.parse(d))
+  .validator((d: unknown) => GenInput.parse(d))
   .handler(async ({ data }) => {
     const modeHint =
       data.mode === "mcq"
@@ -63,7 +62,9 @@ export const generateAssessment = createServerFn({ method: "POST" })
 
     try {
       return await run();
-    } catch {
+    } catch (err) {
+      // A second attempt only helps when the model returned malformed JSON.
+      if (err instanceof AiUserError) throw err;
       return await run();
     }
   });
@@ -87,19 +88,19 @@ function parseJson(text: string): unknown {
 }
 
 const EvalInput = z.object({
-  technology: z.string(),
+  technology: z.string().min(1).max(60),
   difficulty: z.enum(["easy", "medium", "hard"]),
   answers: z.array(
     z.object({
       question: QuestionSchema,
-      userAnswer: z.string(),
-      selectedIndex: z.number().nullable(),
+      userAnswer: z.string().max(5000),
+      selectedIndex: z.number().int().min(0).max(5).nullable(),
     })
-  ),
+  ).max(25),
 });
 
 export const evaluateAssessment = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => EvalInput.parse(d))
+  .validator((d: unknown) => EvalInput.parse(d))
   .handler(async ({ data }) => {
     // Auto-grade objective, LLM grades scenarios + produces report
     const items = data.answers.map((a) => {

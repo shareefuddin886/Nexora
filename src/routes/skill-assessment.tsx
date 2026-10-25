@@ -46,7 +46,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/skill-assessment")({
   head: () => ({
     meta: [
-      { title: "AI Skill Assessment — CareerPilot AI" },
+      { title: "AI Skill Assessment — Nexora" },
       {
         name: "description",
         content:
@@ -259,7 +259,7 @@ function SkillAssessmentPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden pt-24 pb-24">
+    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden pt-10 pb-24">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-hero-glow" />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-grid opacity-20 [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]" />
 
@@ -407,7 +407,7 @@ function Setup(props: {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className="mx-auto w-full max-w-[1280px] px-6 md:px-8"
+      className="mx-auto w-full max-w-[1280px] px-4 md:px-8"
     >
       {/* ---------- Hero ---------- */}
       <section className="grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-16 items-center">
@@ -468,7 +468,7 @@ function Setup(props: {
               className="inline-flex items-center gap-2 rounded-2xl border border-border/70 bg-surface/40 px-6 py-3.5 text-sm font-semibold text-foreground/90 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40"
             >
               <PieChartIcon className="h-4 w-4 text-primary" />
-              View Sample Report
+              Review your setup
             </a>
           </div>
         </motion.div>
@@ -496,8 +496,7 @@ function Setup(props: {
               <motion.button
                 key={t.id}
                 initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: Math.min(i, 8) * 0.04 }}
                 onClick={() => setTech(t.id)}
                 className={`group relative flex h-full flex-col overflow-hidden rounded-[20px] border p-5 text-left transition-all duration-300 hover:-translate-y-1.5 ${
@@ -524,7 +523,7 @@ function Setup(props: {
                   </span>
                   <div className="min-w-0">
                     <div className="truncate font-semibold">{t.id}</div>
-                    <div className="text-[11px] text-muted-foreground">{t.approx}</div>
+                    <div className="text-[11px] text-muted-foreground">{t.topics.slice(0, 3).join(" · ")}</div>
                   </div>
                 </div>
 
@@ -545,13 +544,9 @@ function Setup(props: {
                       <Clock className="h-3 w-3" />
                       {estimateDuration(count, diff, mode)} min
                     </span>
-                    <span className="font-medium text-foreground/80">{t.coverage}% coverage</span>
-                  </div>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-background/60">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${t.coverage}%`, background: t.accent }}
-                    />
+                    <span className="font-medium text-foreground/80">
+                      {t.topics.length} focus areas
+                    </span>
                   </div>
                 </div>
               </motion.button>
@@ -560,8 +555,7 @@ function Setup(props: {
 
           <motion.button
             initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
             onClick={() => setTech("__custom")}
             className={`flex h-full flex-col rounded-[20px] border-2 border-dashed p-5 text-left transition-all duration-300 hover:-translate-y-1.5 ${
@@ -606,8 +600,7 @@ function Setup(props: {
               <motion.button
                 key={d.id}
                 initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: i * 0.06 }}
                 onClick={() => setDiff(d.id)}
                 className={`relative flex h-full flex-col rounded-[20px] border p-6 text-left transition-all duration-300 hover:-translate-y-1.5 ${
@@ -667,8 +660,7 @@ function Setup(props: {
               <motion.button
                 key={m.id}
                 initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: i * 0.05 }}
                 onClick={() => setMode(m.id)}
                 className={`relative flex h-full flex-col rounded-[20px] border p-5 text-left transition-all duration-300 hover:-translate-y-1.5 ${
@@ -748,8 +740,7 @@ function Setup(props: {
                 key={f.key}
                 type="button"
                 initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: i * 0.05 }}
                 onClick={() => !f.locked && f.onChange(!f.value)}
                 className={`relative flex h-full flex-col overflow-hidden rounded-[20px] border p-5 text-left transition-all duration-300 hover:-translate-y-1.5 ${
@@ -796,8 +787,7 @@ function Setup(props: {
       >
         <motion.div
           initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
           className="rounded-[22px] border border-border/60 bg-surface/40 p-6 md:p-7"
         >
@@ -827,7 +817,7 @@ function Setup(props: {
             </span>
             {selectedTech && (
               <span className="inline-flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-primary" /> {selectedTech.approx} covered
+                <Check className="h-3.5 w-3.5 text-primary" /> {selectedTech.topics.length} focus areas covered
               </span>
             )}
           </div>
@@ -890,8 +880,7 @@ function Section({
     <section id={id} className="scroll-mt-28 pt-20 md:pt-28">
       <motion.div
         initial={{ opacity: 0, y: 14 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-80px" }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
@@ -1306,7 +1295,7 @@ function Report({
           title="Coding Accuracy"
           value={codingAccuracy}
           suffix="%"
-          trend={codingAccuracy >= 80 ? "Top 10%" : codingAccuracy >= 60 ? "Solid" : "Practice more"}
+          trend={codingAccuracy >= 80 ? "Strong" : codingAccuracy >= 60 ? "Solid" : "Practice more"}
           tone="blue"
         />
         <SummaryCard
@@ -2013,9 +2002,6 @@ function PerformanceBars({
     { label: "Confidence", value: Math.round(radar.confidence) },
     { label: "Communication", value: Math.round(radar.communication) },
   ];
-  weakTopics.slice(0, 2).forEach((t) => {
-    bars.push({ label: t, value: Math.max(20, Math.round(radar.accuracy * 0.5)) });
-  });
   return (
     <div className="space-y-4">
       {bars.map((b, i) => (
@@ -2361,9 +2347,9 @@ function HeroIllustration() {
         }}
       />
 
-      <div className="grid grid-cols-[1.55fr_1fr] gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1.55fr_1fr]">
         {/* Editor */}
-        <div className="overflow-hidden rounded-[20px] border border-border/60 bg-background/70 shadow-card backdrop-blur">
+        <div className="min-w-0 overflow-hidden rounded-[20px] border border-border/60 bg-background/70 shadow-card backdrop-blur">
           <div className="flex items-center gap-2 border-b border-border/50 bg-surface/60 px-4 py-2.5">
             <span className="h-2.5 w-2.5 rounded-full bg-destructive/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-yellow-400/70" />
@@ -2380,7 +2366,7 @@ function HeroIllustration() {
           </div>
 
           <pre
-            className="overflow-hidden whitespace-pre-wrap px-4 py-4 text-[10.5px] leading-[1.75] text-muted-foreground"
+            className="overflow-x-auto whitespace-pre px-4 py-4 text-[10.5px] leading-[1.75] text-muted-foreground"
             style={{ fontFamily: "var(--font-mono)" }}
           >
 {`public class Solution {
@@ -2414,10 +2400,10 @@ function HeroIllustration() {
         </div>
 
         {/* Side panels */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           <div className="rounded-[20px] border border-border/60 bg-surface/50 p-4 shadow-card backdrop-blur">
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Overall accuracy
+              Sample · Overall accuracy
             </div>
             <div className="mt-3 flex items-center gap-3">
               <svg viewBox="0 0 44 44" className="h-16 w-16 -rotate-90">

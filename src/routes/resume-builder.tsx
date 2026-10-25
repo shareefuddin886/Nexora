@@ -4,7 +4,7 @@ import ResumeStudio from "@/components/resume-studio/ResumeStudio";
 export const Route = createFileRoute("/resume-builder")({
   head: () => ({
     meta: [
-      { title: "Resume Studio — CareerPilot AI" },
+      { title: "Resume Builder — Nexora" },
       {
         name: "description",
         content:

@@ -19,6 +19,7 @@ import {
 import { useDsaProgress } from "@/hooks/useDsaProgress";
 
 export const Route = createFileRoute("/learning-hub/")({
+  head: () => ({ meta: [{ title: "Learning Hub — Nexora" }] }),
   component: LearningHubPage,
 });
 
@@ -83,7 +84,7 @@ function LearningHubPage() {
   const { progress } = useDsaProgress();
 
   return (
-    <div className="min-h-screen pt-28 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-12">
+    <div className="min-h-screen pt-10 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-12">
       {/* Hero section */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 glass text-xs font-semibold text-primary border border-primary/30">
@@ -112,7 +113,7 @@ function LearningHubPage() {
               className={`group relative rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 ${
                 isAvailable
                   ? "glass border-primary/40 shadow-glow hover:border-primary/80 hover:-translate-y-1"
-                  : "glass border-border/50 opacity-80 hover:opacity-100"
+                  : "glass border-border/50 opacity-80"
               }`}
             >
               <div className="space-y-4">
@@ -140,7 +141,7 @@ function LearningHubPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-foreground font-display group-hover:text-primary transition">
+                  <h3 className={`text-xl font-bold text-foreground font-display transition ${isAvailable ? "group-hover:text-primary" : ""}`}>
                     {cat.title}
                   </h3>
                   <p className="mt-2 text-xs md:text-sm text-muted-foreground leading-relaxed">

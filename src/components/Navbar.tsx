@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Menu, X, LogOut, Sparkles, LayoutDashboard, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,17 @@ export function Navbar() {
   const { user, isAdmin } = useAuthUser();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+
+  // Signed-in users get "Dashboard" in place of "Home" (the logo still goes home).
+  const navLinks = user
+    ? [{ to: "/dashboard", label: "Dashboard" } as const, ...links.slice(1)]
+    : links;
+
+  // Close the mobile menu whenever the page changes.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -83,7 +94,7 @@ export function Navbar() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
-            {links.map((l) => (
+            {navLinks.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
@@ -166,6 +177,7 @@ export function Navbar() {
             className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg glass"
             onClick={() => setOpen((v) => !v)}
             aria-label="Toggle menu"
+            aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -174,13 +186,14 @@ export function Navbar() {
         {open && (
           <div className="lg:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl">
             <nav className="mx-auto max-w-7xl flex flex-col p-4 gap-1">
-              {links.map((l) => (
+              {navLinks.map((l) => (
                 <Link
                   key={l.to}
                   to={l.to}
                   onClick={() => setOpen(false)}
                   className="px-4 py-3 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-surface"
                   activeProps={{ className: "text-foreground bg-surface" }}
+                  activeOptions={{ exact: l.to === "/" }}
                 >
                   {l.label}
                 </Link>
@@ -215,7 +228,7 @@ export function Navbar() {
                       className="w-full flex items-center justify-center gap-2 rounded-xl glass py-2.5 text-sm text-destructive"
                     >
                       <LogOut className="h-4 w-4" />
-                      Sign Out ({user.email})
+                      <span className="truncate">Sign Out ({user.email})</span>
                     </button>
                   </>
                 ) : (

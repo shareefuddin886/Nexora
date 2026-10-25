@@ -3,7 +3,8 @@ import { AlertCircle, CheckCircle2, FileText, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+// Base64 adds ~33%; 3 MB stays under the 4.5 MB request limit on Vercel.
+const MAX_BYTES = 3 * 1024 * 1024;
 const ACCEPT = ".pdf,.docx";
 
 export function formatSize(bytes: number) {
@@ -22,7 +23,7 @@ function validate(file: File): string | null {
   if (!lower.endsWith(".pdf") && !lower.endsWith(".docx")) {
     return "This file type isn't supported. Please upload a PDF or DOCX.";
   }
-  if (file.size > MAX_BYTES) return "This file is larger than 5 MB. Please upload a smaller file.";
+  if (file.size > MAX_BYTES) return "This file is larger than 3 MB. Please upload a smaller file.";
   if (file.size === 0) return "This file appears to be empty. Please choose another file.";
   return null;
 }
@@ -79,7 +80,7 @@ function DropZone({
         <Upload className="h-6 w-6" />
       </span>
       <p className="mt-5 text-base font-medium text-foreground">{label}</p>
-      <p className="mt-1.5 text-xs text-muted-foreground">PDF or DOCX · Maximum 5 MB</p>
+      <p className="mt-1.5 text-xs text-muted-foreground">PDF or DOCX · Maximum 3 MB</p>
       <input
         id={inputId}
         ref={ref}
@@ -240,7 +241,7 @@ export function UploadStep({
               ? state.jdFile || state.jdText.trim().length > 40
                 ? "Your review will include a role-specific requirements comparison."
                 : "Your review will focus on content, impact, structure, skills, and ATS readability."
-              : "PDF or DOCX files up to 5 MB are supported."}
+              : "PDF or DOCX files up to 3 MB are supported."}
           </p>
         </div>
         <Button

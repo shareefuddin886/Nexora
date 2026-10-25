@@ -1,14 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
 import { z } from "zod";
-import { getGeminiModel } from "./gemini.server";
+import { generateWithGeminiFallback, isGeminiConfigured, userMessage } from "./gemini.server";
 
 function getModel() {
-  try {
-    return getGeminiModel("gemini-2.5-flash");
-  } catch {
-    return null;
-  }
+  return isGeminiConfigured();
 }
 
 function extractJson(text: string): any {
@@ -27,13 +22,13 @@ function extractJson(text: string): any {
 }
 
 const ImproveTextInput = z.object({
-  text: z.string().min(1),
+  text: z.string().min(1).max(5000),
   kind: z.enum(["summary", "project", "experience", "generic"]),
-  context: z.string().optional(),
+  context: z.string().max(2000).optional(),
 });
 
 export const improveText = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => ImproveTextInput.parse(d))
+  .validator((d: unknown) => ImproveTextInput.parse(d))
   .handler(async ({ data }) => {
     const kindHint: Record<string, string> = {
       summary:
@@ -55,8 +50,7 @@ Return JSON strictly in this format:
     try {
       const model = getModel();
       if (model) {
-        const { text } = await generateText({
-          model,
+        const { text } = await generateWithGeminiFallback({
           system:
             "You are an elite technical resume coach and FAANG recruiter. Return ONLY valid JSON with the key 'improved'. Never add markdown code fences or conversational text.",
           prompt,
@@ -109,17 +103,16 @@ Return JSON strictly in this format:
   });
 
 const AnalyzeInput = z.object({
-  resume: z.string().min(1),
+  resume: z.string().min(1).max(30000),
 });
 
 export const analyzeResume = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => AnalyzeInput.parse(d))
+  .validator((d: unknown) => AnalyzeInput.parse(d))
   .handler(async ({ data }) => {
     try {
       const model = getModel();
       if (model) {
-        const { text } = await generateText({
-          model,
+        const { text } = await generateWithGeminiFallback({
           system:
             "You are a senior technical recruiter and ATS auditor. Return valid JSON matching: score (0-100), atsScore (0-100), strengths (array of string), improvements (array of string), missingKeywords (array of string), strongerVerbs (array of string), grammar (array of string).",
           prompt: `Audit this resume JSON and return structured feedback:\n${data.resume}`,
@@ -162,17 +155,16 @@ export const analyzeResume = createServerFn({ method: "POST" })
   });
 
 const LiveTipsInput = z.object({
-  resume: z.string().min(1),
+  resume: z.string().min(1).max(30000),
 });
 
 export const liveTips = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => LiveTipsInput.parse(d))
+  .validator((d: unknown) => LiveTipsInput.parse(d))
   .handler(async ({ data }) => {
     try {
       const model = getModel();
       if (model) {
-        const { text } = await generateText({
-          model,
+        const { text } = await generateWithGeminiFallback({
           system:
             "You are a resume assistant. Return valid JSON: { \"tips\": [{\"type\": \"success\"|\"warning\"|\"idea\"|\"sparkle\", \"text\": \"string\"}] }. Short, specific, actionable tips (max 12 words each).",
           prompt: `Look at this resume JSON and return quick suggestions:\n${data.resume}`,

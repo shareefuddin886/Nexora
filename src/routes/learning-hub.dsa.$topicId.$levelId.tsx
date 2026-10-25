@@ -21,6 +21,14 @@ import { DifficultyBadge, ProblemList, SectionLabel } from "@/components/dsa/Dsa
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/learning-hub/dsa/$topicId/$levelId")({
+  head: ({ params }) => {
+    const found = getAllLevels().find(
+      (l) => l.topicId === params.topicId && l.level.id === params.levelId,
+    );
+    return {
+      meta: [{ title: found ? `${found.level.title} — ${found.topic.title} — Nexora` : "DSA Lesson — Nexora" }],
+    };
+  },
   component: DsaLevelPage,
 });
 
@@ -96,7 +104,7 @@ function LessonView({ topicId, levelId }: { topicId: string; levelId: string }) 
   ];
 
   return (
-    <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-28 md:px-8">
+    <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-10 md:px-8">
       {/* Breadcrumb */}
       <nav className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         <Link to="/learning-hub" className="transition hover:text-foreground">

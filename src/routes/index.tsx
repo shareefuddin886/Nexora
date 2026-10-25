@@ -5,8 +5,8 @@ import {
   BrainCircuit,
   MessagesSquare,
   ArrowRight,
-  UserPlus,
-  LogIn,
+  Rocket,
+  LayoutGrid,
   BookOpen,
 } from "lucide-react";
 import { HomeProgress } from "@/components/HomeProgress";
@@ -191,7 +191,7 @@ function Index() {
               className="group inline-flex items-center justify-center gap-2 rounded-2xl px-8 py-4 text-base font-semibold text-primary-foreground transition-transform hover:scale-[1.03] shadow-glow min-w-[200px]"
               style={{ background: "var(--gradient-gold)" }}
             >
-              <LogIn className="h-5 w-5" />
+              <Rocket className="h-5 w-5" />
               Get Started
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
@@ -203,7 +203,7 @@ function Index() {
                 borderColor: "oklch(0.82 0.14 82 / 0.35)",
               }}
             >
-              <UserPlus className="h-5 w-5" style={{ color: "var(--gold)" }} />
+              <LayoutGrid className="h-5 w-5" style={{ color: "var(--gold)" }} />
               Explore Features
             </a>
           </div>
@@ -228,16 +228,16 @@ function Index() {
             Everything you need to land the offer.
           </h2>
           <p className="mt-4 text-muted-foreground text-lg" style={{ fontFamily: "var(--font-sans)" }}>
-            Four AI modules that work together — from your first resume draft to your final on-site.
+            Five AI modules that work together — from your first resume draft to your final on-site.
           </p>
         </div>
 
-        <div className="mt-14 grid md:grid-cols-2 gap-6">
-          {features.map((f) => (
+        <div className="mt-14 grid md:grid-cols-2 lg:grid-cols-6 gap-6">
+          {features.map((f, idx) => (
             <Link
               key={f.href}
               to={f.href}
-              className="group relative overflow-hidden rounded-3xl glass p-8 transition-all hover:-translate-y-1 hover:shadow-card"
+              className={`group relative overflow-hidden rounded-3xl glass p-8 transition-all hover:-translate-y-1 hover:shadow-card ${idx < 3 ? "lg:col-span-2" : "lg:col-span-3"} ${idx === 4 ? "md:col-span-2 lg:col-span-3" : ""}`}
             >
               <div
                 className="pointer-events-none absolute -top-24 -right-24 h-56 w-56 rounded-full opacity-0 group-hover:opacity-30 transition-opacity blur-3xl"

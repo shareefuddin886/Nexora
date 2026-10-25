@@ -155,7 +155,7 @@ function ResumeReviewPage() {
   }, [state, extract, review, hasJd, stages.length]);
 
   return (
-    <main className="resume-review-theme min-h-[calc(100vh-5rem)] px-4 py-10 sm:px-6 sm:py-14">
+    <div className="resume-review-theme min-h-[calc(100vh-5rem)] px-4 py-10 sm:px-6 sm:py-14">
       <div className="mx-auto w-full max-w-6xl">
         {phase === "upload" ? (
           <>
@@ -240,6 +240,6 @@ function ResumeReviewPage() {
           </p>
         ) : null}
       </div>
-    </main>
+    </div>
   );
 }

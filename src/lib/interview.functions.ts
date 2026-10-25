@@ -1,34 +1,29 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
 import { z } from "zod";
-import { getGeminiModel } from "./gemini.server";
+import { generateWithGeminiFallback, isGeminiConfigured, userMessage } from "./gemini.server";
 import { buildFallbackQuestions, DIFFICULTY_GUIDE, hasCuratedBank, skillsForRole } from "./interview-bank";
 
 const MessageSchema = z.object({
-  question: z.string(),
-  answer: z.string(),
+  question: z.string().max(2000),
+  answer: z.string().max(5000),
   score: z.number().optional(),
 });
 
 const ConfigSchema = z.object({
-  role: z.string(),
+  role: z.string().min(1).max(100),
   type: z.enum(["hr", "technical", "mixed"]),
   difficulty: z.enum(["easy", "medium", "hard"]),
-  duration: z.number(),
-  skills: z.array(z.string()),
+  duration: z.number().min(1).max(120),
+  skills: z.array(z.string().max(50)).max(20),
   language: z.enum(["english", "hindi"]),
-  totalQuestions: z.number(),
+  totalQuestions: z.number().int().min(1).max(30),
 });
 
 export type InterviewConfig = z.infer<typeof ConfigSchema>;
 export type InterviewTurn = z.infer<typeof MessageSchema>;
 
 function getModel() {
-  try {
-    return getGeminiModel("gemini-2.5-flash");
-  } catch {
-    return null;
-  }
+  return isGeminiConfigured();
 }
 
 function systemPrompt(cfg: InterviewConfig) {
@@ -75,7 +70,7 @@ function cleanQuestions(raw: unknown): string[] {
 
 /** Always returns a non-empty list of exactly cfg.totalQuestions questions. */
 export const generateQuestions = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => ConfigSchema.parse(d))
+  .validator((d: unknown) => ConfigSchema.parse(d))
   .handler(async ({ data }) => {
     const total = Math.max(1, data.totalQuestions || 5);
     const skills =
@@ -99,8 +94,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
             ? `All questions must be technical and must be spread evenly across these skills: ${data.skills.join(", ") || "software engineering"}.`
             : `About 40% HR/behavioural and 60% technical, spread evenly across: ${data.skills.join(", ") || "software engineering"}.`;
 
-      const { text } = await generateText({
-        model,
+      const { text } = await generateWithGeminiFallback({
         system: systemPrompt(data),
         prompt: `Generate exactly ${total} realistic, commonly asked interview questions.
 ${mix}
@@ -134,10 +128,10 @@ Return ONLY a JSON array of ${total} strings.`,
 
 const EvalInput = z.object({
   config: ConfigSchema,
-  history: z.array(MessageSchema),
-  currentQuestion: z.string(),
-  answer: z.string(),
-  questionIndex: z.number(),
+  history: z.array(MessageSchema).max(40),
+  currentQuestion: z.string().max(2000),
+  answer: z.string().max(5000),
+  questionIndex: z.number().int().min(0).max(40),
 });
 
 export type AnswerFeedback = {
@@ -149,7 +143,7 @@ export type AnswerFeedback = {
 };
 
 export const evaluateAnswer = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => EvalInput.parse(d))
+  .validator((d: unknown) => EvalInput.parse(d))
   .handler(async ({ data }): Promise<AnswerFeedback> => {
     const isLast = data.questionIndex + 1 >= data.config.totalQuestions;
     const skipped =
@@ -173,8 +167,7 @@ export const evaluateAnswer = createServerFn({ method: "POST" })
     if (!model) return offline;
 
     try {
-      const { text } = await generateText({
-        model,
+      const { text } = await generateWithGeminiFallback({
         system: systemPrompt(data.config),
         prompt: `Question asked: "${data.currentQuestion}"
 Candidate answer: "${data.answer}"
@@ -200,7 +193,7 @@ Return ONLY JSON: {"score": number 0-10, "strengths": string[] (max 3), "improve
 
 const ReportInput = z.object({
   config: ConfigSchema,
-  history: z.array(MessageSchema),
+  history: z.array(MessageSchema).max(40),
 });
 
 export type InterviewReport = {
@@ -249,13 +242,12 @@ function offlineReport(data: z.infer<typeof ReportInput>): InterviewReport {
 }
 
 export const generateReport = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => ReportInput.parse(d))
+  .validator((d: unknown) => ReportInput.parse(d))
   .handler(async ({ data }): Promise<InterviewReport> => {
     const model = getModel();
     if (!model) return offlineReport(data);
     try {
-      const { text } = await generateText({
-        model,
+      const { text } = await generateWithGeminiFallback({
         system: systemPrompt(data.config),
         prompt: `Full interview transcript with scores: ${JSON.stringify(data.history)}.
 Produce the final performance report as ONLY JSON:

@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { generateText } from "ai";
 import { z } from "zod";
-import { getGeminiModel } from "./gemini.server";
+import { generateWithGeminiFallback, isGeminiConfigured, userMessage } from "./gemini.server";
 import {
   CATEGORY_WEIGHTS,
   type CategoryKey,
@@ -14,7 +13,7 @@ import {
 } from "./resume-review-types";
 
 function getModel() {
-  return getGeminiModel("gemini-2.5-flash");
+  return isGeminiConfigured();
 }
 
 /* ------------------------------ extraction ------------------------------ */
@@ -41,6 +40,7 @@ function normalize(text: string): string {
 async function extractPdf(bytes: Uint8Array): Promise<string> {
   const { extractText, getDocumentProxy } = await import("unpdf");
   const pdf = await getDocumentProxy(bytes);
+  if (pdf.numPages > 15) throw new Error("TOO_MANY_PAGES");
   const { text } = await extractText(pdf, { mergePages: true });
   return normalize(Array.isArray(text) ? text.join("\n") : text);
 }
@@ -56,8 +56,15 @@ function decodeXmlEntities(s: string): string {
 
 async function extractDocx(bytes: Uint8Array): Promise<string> {
   const { unzipSync, strFromU8 } = await import("fflate");
-  const files = unzipSync(bytes);
-  const parts = ["word/document.xml", "word/header1.xml", "word/footer1.xml"]
+  const wanted = new Set(["word/document.xml", "word/header1.xml", "word/footer1.xml"]);
+  const files = unzipSync(bytes, {
+    filter: (f) => {
+      if (!wanted.has(f.name)) return false;
+      if (f.originalSize > 20 * 1024 * 1024) throw new Error("UNREADABLE");
+      return true;
+    },
+  });
+  const parts = [...wanted]
     .map((p) => files[p])
     .filter(Boolean) as Uint8Array[];
   if (!parts.length) throw new Error("UNREADABLE");
@@ -71,12 +78,12 @@ async function extractDocx(bytes: Uint8Array): Promise<string> {
 }
 
 const ExtractInput = z.object({
-  fileBase64: z.string().min(1),
-  fileName: z.string().min(1),
+  fileBase64: z.string().min(1).max(4_000_000),
+  fileName: z.string().min(1).max(200),
 });
 
 export const extractDocumentText = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => ExtractInput.parse(d))
+  .validator((d: unknown) => ExtractInput.parse(d))
   .handler(async ({ data }): Promise<{ ok: true; text: string } | { ok: false; error: string }> => {
     const lower = data.fileName.toLowerCase();
     try {
@@ -157,9 +164,9 @@ function normalizeRequirement(raw: unknown): Requirement | null {
 }
 
 const ReviewInput = z.object({
-  resumeText: z.string().min(1),
-  jobText: z.string().nullable().optional(),
-  resumeFileName: z.string().min(1),
+  resumeText: z.string().min(1).max(24000),
+  jobText: z.string().max(12000).nullable().optional(),
+  resumeFileName: z.string().min(1).max(200),
 });
 
 const SYSTEM = `You are a senior technical recruiter reviewing a resume.
@@ -204,15 +211,13 @@ ${
 }
 
 export const reviewResume = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => ReviewInput.parse(d))
+  .validator((d: unknown) => ReviewInput.parse(d))
   .handler(
     async ({ data }): Promise<{ ok: true; review: ResumeReview } | { ok: false; error: string }> => {
       const jobText = data.jobText?.trim() ? data.jobText.trim().slice(0, 12000) : null;
       let parsed: Record<string, unknown>;
       try {
-        const model = getModel();
-        const { text } = await generateText({
-          model,
+        const { text } = await generateWithGeminiFallback({
           system: SYSTEM,
           prompt: prompt(data.resumeText, jobText),
         });
@@ -221,7 +226,7 @@ export const reviewResume = createServerFn({ method: "POST" })
         console.error("Resume review error:", err);
         return {
           ok: false,
-          error: err instanceof Error ? err.message : "The review service didn't respond. Please try again in a moment.",
+          error: userMessage(err, "The review service didn't respond. Please try again in a moment."),
         };
       }
 

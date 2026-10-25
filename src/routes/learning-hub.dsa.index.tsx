@@ -116,7 +116,7 @@ function DsaDashboardPage() {
   const allOpen = openTopics.size === dsaTopics.length;
 
   return (
-    <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-28 md:px-8">
+    <div className="mx-auto min-h-screen max-w-6xl px-4 pb-20 pt-10 md:px-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Link to="/learning-hub" className="transition hover:text-foreground">
