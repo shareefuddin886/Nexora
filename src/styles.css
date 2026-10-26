@@ -263,6 +263,19 @@
   .animate-fade-in { animation: fade-in 1.2s ease-out both; }
   .animate-shimmer { animation: shimmer-line 6s ease-in-out infinite; }
   .animate-twinkle { animation: twinkle 3s ease-in-out infinite; }
+
+  /* Endless horizontal strip: the content is rendered twice, so -50% loops seamlessly. */
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .animate-marquee { animation: marquee 45s linear infinite; }
+  .animate-marquee-reverse { animation: marquee 50s linear infinite reverse; }
+  .marquee-row:hover .animate-marquee,
+  .marquee-row:hover .animate-marquee-reverse { animation-play-state: paused; }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee, .animate-marquee-reverse { animation: none; }
+  }
 }
 
 /* Resume Review uses the site palette; these aliases feed its component styles below. */
