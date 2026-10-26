@@ -81,20 +81,60 @@ const FEATURES: Feature[] = [
 ];
 
 const SKILLS_ROW_1 = [
-  "Java", "Spring Boot", "React", "SQL", "Python", "JavaScript", "TypeScript", "Node.js",
-  "MongoDB", "System Design", "Git", "C++",
+  "Java",
+  "Spring Boot",
+  "React",
+  "SQL",
+  "Python",
+  "JavaScript",
+  "TypeScript",
+  "Node.js",
+  "MongoDB",
+  "System Design",
+  "Git",
+  "C++",
 ];
 const SKILLS_ROW_2 = [
-  "Arrays", "Hashing", "Binary Search", "Recursion", "Linked Lists", "Stacks & Queues",
-  "Trees & BST", "Heaps", "Graphs", "Greedy", "Dynamic Programming", "Tries",
+  "Arrays",
+  "Hashing",
+  "Binary Search",
+  "Recursion",
+  "Linked Lists",
+  "Stacks & Queues",
+  "Trees & BST",
+  "Heaps",
+  "Graphs",
+  "Greedy",
+  "Dynamic Programming",
+  "Tries",
 ];
 const CHIP_TONES = [TONES.dsa, TONES.assess, TONES.interview, TONES.resume, REVIEW_TONE];
 
 const STEPS = [
-  { icon: BrainCircuit, tone: TONES.assess, title: "Find your level", text: "Take a short AI skill test and see your weak topics." },
-  { icon: BookOpen, tone: TONES.dsa, title: "Learn what's missing", text: "Follow the DSA roadmap — lessons, quizzes and code." },
-  { icon: MessagesSquare, tone: TONES.interview, title: "Practise for real", text: "Run mock interviews and get a detailed report." },
-  { icon: FileText, tone: TONES.resume, title: "Apply with confidence", text: "Build an ATS-ready resume and get it reviewed." },
+  {
+    icon: BrainCircuit,
+    tone: TONES.assess,
+    title: "Find your level",
+    text: "Take a short AI skill test and see your weak topics.",
+  },
+  {
+    icon: BookOpen,
+    tone: TONES.dsa,
+    title: "Learn what's missing",
+    text: "Follow the DSA roadmap — lessons, quizzes and code.",
+  },
+  {
+    icon: MessagesSquare,
+    tone: TONES.interview,
+    title: "Practise for real",
+    text: "Run mock interviews and get a detailed report.",
+  },
+  {
+    icon: FileText,
+    tone: TONES.resume,
+    title: "Apply with confidence",
+    text: "Build an ATS-ready resume and get it reviewed.",
+  },
 ];
 
 function Index() {
@@ -145,7 +185,10 @@ function Index() {
             <Link
               to="/dashboard"
               className="inline-flex items-center justify-center gap-2 rounded-2xl border px-8 py-4 text-base font-semibold text-foreground transition-all hover:scale-[1.03] sm:min-w-[210px]"
-              style={{ background: "oklch(0.22 0.09 265)", borderColor: "oklch(0.82 0.14 82 / 0.35)" }}
+              style={{
+                background: "oklch(0.22 0.09 265)",
+                borderColor: "oklch(0.82 0.14 82 / 0.35)",
+              }}
             >
               <LayoutDashboard className="h-5 w-5" style={{ color: "var(--gold)" }} />
               My dashboard
@@ -165,7 +208,10 @@ function Index() {
       {/* How it works */}
       <section className="mx-auto max-w-7xl px-4 pb-24 md:px-8">
         <SectionLabel>How it works</SectionLabel>
-        <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ fontFamily: "var(--font-display)" }}>
+        <h2
+          className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
           From “where do I start?” to <span className="text-gradient-gold">offer-ready.</span>
         </h2>
         <ol className="relative mt-12 grid gap-6 md:grid-cols-4 md:gap-5">
@@ -179,10 +225,17 @@ function Index() {
             }}
           />
           {STEPS.map((s, i) => (
-            <li key={s.title} className="relative flex gap-4 md:flex-col md:items-center md:text-center">
+            <li
+              key={s.title}
+              className="relative flex gap-4 md:flex-col md:items-center md:text-center"
+            >
               <span
                 className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl border bg-background"
-                style={{ borderColor: tint(s.tone, 0.45), color: s.tone, boxShadow: `0 0 30px -8px ${tint(s.tone, 0.6)}` }}
+                style={{
+                  borderColor: tint(s.tone, 0.45),
+                  color: s.tone,
+                  boxShadow: `0 0 30px -8px ${tint(s.tone, 0.6)}`,
+                }}
               >
                 <s.icon className="h-6 w-6" />
                 <span
@@ -194,7 +247,9 @@ function Index() {
               </span>
               <span className="md:mt-5">
                 <span className="block text-lg font-semibold">{s.title}</span>
-                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{s.text}</span>
+                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                  {s.text}
+                </span>
               </span>
             </li>
           ))}
@@ -205,11 +260,15 @@ function Index() {
       <section id="features" className="mx-auto max-w-7xl px-4 pb-28 md:px-8">
         <div className="max-w-2xl">
           <SectionLabel>Features</SectionLabel>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ fontFamily: "var(--font-display)" }}>
+          <h2
+            className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
             Everything you need to land the offer.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Five AI modules that work together — from your first resume draft to your final interview.
+            Five AI modules that work together — from your first resume draft to your final
+            interview.
           </p>
         </div>
 
@@ -230,11 +289,16 @@ function Index() {
           <div className="pointer-events-none absolute inset-0 bg-hero-glow opacity-60" />
           <div className="relative">
             <Sparkles className="mx-auto h-7 w-7" style={{ color: "var(--gold)" }} />
-            <h3 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ fontFamily: "var(--font-display)" }}>
-              Your first mock interview is <span className="text-gradient-gold">one click away.</span>
+            <h3
+              className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Your first mock interview is{" "}
+              <span className="text-gradient-gold">one click away.</span>
             </h3>
             <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-              Pick a role, choose the difficulty, and practise with an AI interviewer that adapts to you.
+              Pick a role, choose the difficulty, and practise with an AI interviewer that adapts to
+              you.
             </p>
             <Link
               to="/mock-interview"
@@ -256,7 +320,10 @@ function Index() {
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <span className="text-xs uppercase tracking-[0.28em]" style={{ fontFamily: "var(--font-mono)" }}>
+    <span
+      className="text-xs uppercase tracking-[0.28em]"
+      style={{ fontFamily: "var(--font-mono)" }}
+    >
       <span style={{ color: "var(--gold)" }}>/</span>
       {children}
     </span>
@@ -266,7 +333,9 @@ function SectionLabel({ children }: { children: ReactNode }) {
 function SkillsMarquee() {
   const row = (items: string[], reverse: boolean) => (
     <div className="marquee-row relative flex overflow-hidden py-1.5 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
-      <div className={`flex shrink-0 gap-3 pr-3 ${reverse ? "animate-marquee-reverse" : "animate-marquee"}`}>
+      <div
+        className={`flex shrink-0 gap-3 pr-3 ${reverse ? "animate-marquee-reverse" : "animate-marquee"}`}
+      >
         {[...items, ...items].map((label, i) => {
           const tone = CHIP_TONES[i % CHIP_TONES.length];
           return (
@@ -275,7 +344,10 @@ function SkillsMarquee() {
               aria-hidden={i >= items.length}
               className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-border/60 bg-surface/50 px-4 py-2 text-sm text-foreground/85 backdrop-blur"
             >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone, boxShadow: `0 0 8px ${tone}` }} />
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: tone, boxShadow: `0 0 8px ${tone}` }}
+              />
               {label}
             </span>
           );
@@ -307,16 +379,25 @@ function FeatureCard({ feature: f, className }: { feature: Feature; className: s
         style={{ background: f.tone }}
       />
       <div className="relative flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl" style={{ background: tint(f.tone, 0.14), color: f.tone }}>
+        <span
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
+          style={{ background: tint(f.tone, 0.14), color: f.tone }}
+        >
           <f.icon className="h-6 w-6" strokeWidth={2} />
         </span>
-        <h3 className="text-2xl font-semibold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+        <h3
+          className="text-2xl font-semibold tracking-tight"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
           {f.title}
         </h3>
       </div>
       <p className="relative mt-4 leading-relaxed text-muted-foreground">{f.desc}</p>
       <div className="relative mt-5 flex-1">{f.preview}</div>
-      <span className="relative mt-6 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: f.tone }}>
+      <span
+        className="relative mt-6 inline-flex items-center gap-1.5 text-sm font-semibold"
+        style={{ color: f.tone }}
+      >
         {f.cta}
         <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
       </span>
@@ -355,7 +436,10 @@ function SiteFooter() {
             >
               N
             </span>
-            <span className="font-bold tracking-[0.16em]" style={{ fontFamily: "var(--font-display)" }}>
+            <span
+              className="font-bold tracking-[0.16em]"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               NEXORA
             </span>
           </div>
@@ -389,20 +473,26 @@ function SiteFooter() {
 // Small illustrative UI fragments that show what each tool looks like.
 
 function PreviewFrame({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl border border-border/50 bg-background/60 p-4 text-xs">{children}</div>;
+  return (
+    <div className="rounded-2xl border border-border/50 bg-background/60 p-4 text-xs">
+      {children}
+    </div>
+  );
 }
 
 function CodePreview() {
   return (
     <PreviewFrame>
       <pre className="overflow-hidden whitespace-pre font-mono text-[12px] leading-6 text-muted-foreground">
-        <span style={{ color: TONES.interview }}>function</span> <span style={{ color: TONES.dsa }}>missingNumber</span>(nums) {"{"}
+        <span style={{ color: TONES.interview }}>function</span>{" "}
+        <span style={{ color: TONES.dsa }}>missingNumber</span>(nums) {"{"}
         {"\n"}
         {"  "}
         <span style={{ color: TONES.interview }}>const</span> n = nums.length;
         {"\n"}
         {"  "}
-        <span style={{ color: TONES.interview }}>return</span> n * (n + <span style={{ color: TONES.assess }}>1</span>) /{" "}
+        <span style={{ color: TONES.interview }}>return</span> n * (n +{" "}
+        <span style={{ color: TONES.assess }}>1</span>) /{" "}
         <span style={{ color: TONES.assess }}>2</span> - sum(nums);
         {"\n"}
         {"}"}
@@ -421,7 +511,9 @@ function QuizPreview() {
   const opts = ["HashMap", "Hashtable", "ConcurrentHashMap", "TreeMap"];
   return (
     <PreviewFrame>
-      <p className="font-medium text-foreground/90">Which map is thread-safe without locking the whole table?</p>
+      <p className="font-medium text-foreground/90">
+        Which map is thread-safe without locking the whole table?
+      </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {opts.map((o, i) => (
           <span
@@ -429,7 +521,11 @@ function QuizPreview() {
             className="flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-1.5"
             style={
               i === 2
-                ? { borderColor: TONES.assess, background: tint(TONES.assess, 0.12), color: TONES.assess }
+                ? {
+                    borderColor: TONES.assess,
+                    background: tint(TONES.assess, 0.12),
+                    color: TONES.assess,
+                  }
                 : { borderColor: "var(--border)" }
             }
           >
@@ -446,13 +542,19 @@ function ChatPreview() {
   return (
     <PreviewFrame>
       <div className="space-y-2">
-        <p className="max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2" style={{ background: tint(TONES.interview, 0.14) }}>
+        <p
+          className="max-w-[85%] rounded-2xl rounded-tl-sm px-3 py-2"
+          style={{ background: tint(TONES.interview, 0.14) }}
+        >
           Explain the difference between a process and a thread.
         </p>
         <p className="ml-auto max-w-[80%] rounded-2xl rounded-tr-sm bg-surface-2 px-3 py-2 text-right text-foreground/90">
           A process has its own memory; threads share it…
         </p>
-        <p className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: TONES.interview }}>
+        <p
+          className="inline-flex items-center gap-1.5 text-[11px]"
+          style={{ color: TONES.interview }}
+        >
           <Sparkles className="h-3 w-3" /> AI feedback ready
         </p>
       </div>
@@ -499,7 +601,10 @@ function ReviewPreview() {
           <div key={label}>
             <div className="text-[11px] text-muted-foreground">{label}</div>
             <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-              <div className="h-full rounded-full" style={{ width: `${v * 100}%`, background: REVIEW_TONE }} />
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${v * 100}%`, background: REVIEW_TONE }}
+              />
             </div>
           </div>
         ))}
@@ -513,21 +618,57 @@ function ReviewPreview() {
 function Ornament() {
   return (
     <div className="flex animate-fade-in items-center gap-4 opacity-80">
-      <span className="h-px w-16 md:w-24" style={{ background: "linear-gradient(to right, transparent, oklch(0.82 0.14 82 / 0.9))" }} />
-      <svg width="18" height="18" viewBox="0 0 24 24" className="animate-twinkle" style={{ color: "var(--gold)" }} aria-hidden>
-        <path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z" fill="currentColor" />
+      <span
+        className="h-px w-16 md:w-24"
+        style={{ background: "linear-gradient(to right, transparent, oklch(0.82 0.14 82 / 0.9))" }}
+      />
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        className="animate-twinkle"
+        style={{ color: "var(--gold)" }}
+        aria-hidden
+      >
+        <path
+          d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"
+          fill="currentColor"
+        />
       </svg>
-      <span className="h-px w-16 md:w-24" style={{ background: "linear-gradient(to left, transparent, oklch(0.82 0.14 82 / 0.9))" }} />
+      <span
+        className="h-px w-16 md:w-24"
+        style={{ background: "linear-gradient(to left, transparent, oklch(0.82 0.14 82 / 0.9))" }}
+      />
     </div>
   );
 }
 
 function AmbientLights() {
   const streaks = [
-    { cls: "-left-32 top-10 h-[520px] w-[2px] rotate-[22deg] opacity-70", r: "22deg", d: "0s", blur: true },
-    { cls: "-left-10 top-40 h-[420px] w-[1px] rotate-[24deg] opacity-40", r: "24deg", d: "1.4s", blur: false },
-    { cls: "-right-32 top-24 h-[480px] w-[2px] -rotate-[22deg] opacity-70", r: "-22deg", d: "0.8s", blur: true },
-    { cls: "-right-10 top-56 h-[380px] w-[1px] -rotate-[24deg] opacity-40", r: "-24deg", d: "2.2s", blur: false },
+    {
+      cls: "-left-32 top-10 h-[520px] w-[2px] rotate-[22deg] opacity-70",
+      r: "22deg",
+      d: "0s",
+      blur: true,
+    },
+    {
+      cls: "-left-10 top-40 h-[420px] w-[1px] rotate-[24deg] opacity-40",
+      r: "24deg",
+      d: "1.4s",
+      blur: false,
+    },
+    {
+      cls: "-right-32 top-24 h-[480px] w-[2px] -rotate-[22deg] opacity-70",
+      r: "-22deg",
+      d: "0.8s",
+      blur: true,
+    },
+    {
+      cls: "-right-10 top-56 h-[380px] w-[1px] -rotate-[24deg] opacity-40",
+      r: "-24deg",
+      d: "2.2s",
+      blur: false,
+    },
   ];
   const stars = [
     { top: "6%", left: "12%", d: "0s" },
@@ -544,7 +685,8 @@ function AmbientLights() {
           key={i}
           className={`absolute animate-shimmer ${s.cls}`}
           style={{
-            background: "linear-gradient(to bottom, transparent, oklch(0.85 0.15 82 / 0.9), transparent)",
+            background:
+              "linear-gradient(to bottom, transparent, oklch(0.85 0.15 82 / 0.9), transparent)",
             filter: s.blur ? "blur(1px)" : undefined,
             animationDelay: s.d,
             ["--r" as never]: s.r,

@@ -130,8 +130,8 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // The login screen is full-page, without the site navigation.
-  const bare = pathname === "/login";
+  // Login and admin pages are full-page, without the student site navigation.
+  const bare = pathname === "/login" || pathname === "/admin" || pathname.startsWith("/admin/");
 
   return (
     <QueryClientProvider client={queryClient}>
