@@ -4,15 +4,19 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
+  useNavigate,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { Navbar } from "../components/Navbar";
 import { Toaster } from "../components/ui/sonner";
+import { useAuthUser } from "../hooks/useAuthUser";
 
 function NotFoundComponent() {
   return (
@@ -125,14 +129,53 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // The login screen is full-page, without the site navigation.
+  const bare = pathname === "/login";
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Navbar />
-      <main className="pt-20">
-        <Outlet />
-      </main>
+      <AuthGate pathname={pathname}>
+        {!bare && <Navbar />}
+        <main className={bare ? "" : "pt-20"}>
+          <Outlet />
+        </main>
+      </AuthGate>
       <Toaster position="bottom-right" richColors />
     </QueryClientProvider>
   );
+}
+
+// Pages that work without signing in. /admin has its own login form.
+const PUBLIC_PATHS = ["/login", "/reset-password", "/admin"];
+
+/**
+ * Sends signed-out visitors to /login (remembering where they were going)
+ * and sends signed-in users away from /login.
+ */
+function AuthGate({ pathname, children }: { pathname: string; children: ReactNode }) {
+  const { user, loading } = useAuthUser();
+  const navigate = useNavigate();
+  const search = useRouterState({ select: (s) => s.location.search }) as { redirect?: string };
+  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const mustLogin = !loading && !user && !isPublic;
+  const leaveLogin = !loading && !!user && pathname === "/login";
+
+  useEffect(() => {
+    if (mustLogin) {
+      const redirect = pathname === "/" ? undefined : pathname;
+      void navigate({ to: "/login", search: { redirect }, replace: true });
+    } else if (leaveLogin) {
+      void navigate({ to: (search.redirect ?? "/") as "/", replace: true });
+    }
+  }, [mustLogin, leaveLogin, pathname, search.redirect, navigate]);
+
+  if ((loading && !isPublic) || mustLogin || leaveLogin) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+  return <>{children}</>;
 }
