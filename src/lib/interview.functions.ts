@@ -22,10 +22,6 @@ const ConfigSchema = z.object({
 export type InterviewConfig = z.infer<typeof ConfigSchema>;
 export type InterviewTurn = z.infer<typeof MessageSchema>;
 
-function getModel() {
-  return isGeminiConfigured();
-}
-
 function systemPrompt(cfg: InterviewConfig) {
   return `You are a professional interviewer conducting a ${cfg.type} interview for a ${cfg.role} candidate at ${cfg.difficulty} difficulty.
 Skills in scope: ${cfg.skills.join(", ") || "general software engineering"}.
@@ -83,7 +79,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
       totalQuestions: total,
     });
 
-    const model = getModel();
+    const model = isGeminiConfigured();
     if (!model) return { questions: fallback, source: "bank" as const };
 
     try {
@@ -163,7 +159,7 @@ export const evaluateAnswer = createServerFn({ method: "POST" })
       isLast,
     };
 
-    const model = getModel();
+    const model = isGeminiConfigured();
     if (!model) return offline;
 
     try {
@@ -244,7 +240,7 @@ function offlineReport(data: z.infer<typeof ReportInput>): InterviewReport {
 export const generateReport = createServerFn({ method: "POST" })
   .validator((d: unknown) => ReportInput.parse(d))
   .handler(async ({ data }): Promise<InterviewReport> => {
-    const model = getModel();
+    const model = isGeminiConfigured();
     if (!model) return offlineReport(data);
     try {
       const { text } = await generateWithGeminiFallback({

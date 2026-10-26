@@ -1,9 +1,8 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Menu, X, LogOut, Sparkles, LayoutDashboard, Shield } from "lucide-react";
+import { Menu, X, User, LogOut, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthModal } from "./AuthModal";
-import { useAuthUser } from "@/hooks/useAuthUser";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,26 +25,30 @@ const links = [
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, isAdmin } = useAuthUser();
+  const [user, setUser] = useState<any>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const pathname = useRouterState({ select: (st) => st.location.pathname });
-
-  // Signed-in users get "Dashboard" in place of "Home" (the logo still goes home).
-  const navLinks = user
-    ? [{ to: "/dashboard", label: "Dashboard" } as const, ...links.slice(1)]
-    : links;
-
-  // Close the mobile menu whenever the page changes.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    // Listen to Supabase auth state changes
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleSignOut = async () => {
@@ -94,7 +97,7 @@ export function Navbar() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map((l) => (
+            {links.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
@@ -125,24 +128,8 @@ export function Navbar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 glass border-border/70 p-1.5">
                   <DropdownMenuLabel className="font-normal text-xs text-muted-foreground">
-                    Signed in as{" "}
-                    <strong className="text-foreground block truncate">{user.email}</strong>
+                    Signed in as <strong className="text-foreground block truncate">{user.email}</strong>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                    <Link to="/dashboard">
-                      <LayoutDashboard className="h-4 w-4" />
-                      My Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem asChild className="cursor-pointer gap-2">
-                      <Link to="/admin">
-                        <Shield className="h-4 w-4" />
-                        Admin Panel
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
@@ -177,7 +164,6 @@ export function Navbar() {
             className="lg:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg glass"
             onClick={() => setOpen((v) => !v)}
             aria-label="Toggle menu"
-            aria-expanded={open}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -186,14 +172,13 @@ export function Navbar() {
         {open && (
           <div className="lg:hidden border-t border-border/60 bg-background/95 backdrop-blur-xl">
             <nav className="mx-auto max-w-7xl flex flex-col p-4 gap-1">
-              {navLinks.map((l) => (
+              {links.map((l) => (
                 <Link
                   key={l.to}
                   to={l.to}
                   onClick={() => setOpen(false)}
                   className="px-4 py-3 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-surface"
                   activeProps={{ className: "text-foreground bg-surface" }}
-                  activeOptions={{ exact: l.to === "/" }}
                 >
                   {l.label}
                 </Link>
@@ -201,36 +186,16 @@ export function Navbar() {
 
               <div className="mt-4 pt-4 border-t border-border/60 flex flex-col gap-2">
                 {user ? (
-                  <>
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setOpen(false)}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl glass py-2.5 text-sm text-foreground"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      My Dashboard
-                    </Link>
-                    {isAdmin && (
-                      <Link
-                        to="/admin"
-                        onClick={() => setOpen(false)}
-                        className="w-full flex items-center justify-center gap-2 rounded-xl glass py-2.5 text-sm text-foreground"
-                      >
-                        <Shield className="h-4 w-4" />
-                        Admin Panel
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => {
-                        setOpen(false);
-                        handleSignOut();
-                      }}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl glass py-2.5 text-sm text-destructive"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span className="truncate">Sign Out ({user.email})</span>
-                    </button>
-                  </>
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      handleSignOut();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl glass py-2.5 text-sm text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out ({user.email})
+                  </button>
                 ) : (
                   <>
                     <button
@@ -260,7 +225,11 @@ export function Navbar() {
         )}
       </header>
 
-      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} defaultMode={authMode} />
+      <AuthModal
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        defaultMode={authMode}
+      />
     </>
   );
 }

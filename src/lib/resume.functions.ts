@@ -2,10 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { generateWithGeminiFallback, isGeminiConfigured, userMessage } from "./gemini.server";
 
-function getModel() {
-  return isGeminiConfigured();
-}
-
 function extractJson(text: string): any {
   const cleaned = text.replace(/```json/gi, "```").split("```").join("\n");
   const start = cleaned.search(/[[{]/);
@@ -48,7 +44,7 @@ Return JSON strictly in this format:
 {"improved": "the revised text here"}`;
 
     try {
-      const model = getModel();
+      const model = isGeminiConfigured();
       if (model) {
         const { text } = await generateWithGeminiFallback({
           system:
@@ -110,7 +106,7 @@ export const analyzeResume = createServerFn({ method: "POST" })
   .validator((d: unknown) => AnalyzeInput.parse(d))
   .handler(async ({ data }) => {
     try {
-      const model = getModel();
+      const model = isGeminiConfigured();
       if (model) {
         const { text } = await generateWithGeminiFallback({
           system:
@@ -162,7 +158,7 @@ export const liveTips = createServerFn({ method: "POST" })
   .validator((d: unknown) => LiveTipsInput.parse(d))
   .handler(async ({ data }) => {
     try {
-      const model = getModel();
+      const model = isGeminiConfigured();
       if (model) {
         const { text } = await generateWithGeminiFallback({
           system:

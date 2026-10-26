@@ -12,10 +12,6 @@ import {
   type SkillGroup,
 } from "./resume-review-types";
 
-function getModel() {
-  return isGeminiConfigured();
-}
-
 /* ------------------------------ extraction ------------------------------ */
 
 function base64ToBytes(b64: string): Uint8Array {
