@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Menu, X, LogOut, Sparkles, LayoutDashboard, Shield } from "lucide-react";
+import { Menu, X, LogOut, Sparkles, LayoutDashboard, Shield, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import {
@@ -133,6 +133,12 @@ export function Navbar() {
                       My Dashboard
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer gap-2">
+                    <Link to="/profile">
+                      <UserRound className="h-4 w-4" />
+                      My Profile
+                    </Link>
+                  </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild className="cursor-pointer gap-2">
                       <Link to="/admin">
@@ -216,6 +222,14 @@ export function Navbar() {
                     >
                       <LayoutDashboard className="h-4 w-4" />
                       My Dashboard
+                    </Link>
+                    <Link
+                      to="/profile"
+                      onClick={() => setOpen(false)}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl glass py-2.5 text-sm text-foreground"
+                    >
+                      <UserRound className="h-4 w-4" />
+                      My Profile
                     </Link>
                     {isAdmin && (
                       <Link

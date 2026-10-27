@@ -28,6 +28,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { dsaTopics, getAllLevels } from "@/lib/dsa-curriculum";
 import { TONES, tint } from "@/lib/module-tones";
 import { AuthModal } from "@/components/AuthModal";
+import { Achievements } from "@/components/Achievements";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "My Dashboard — Nexora" }] }),
@@ -373,6 +374,19 @@ function DashboardPage() {
           </span>
         </Link>
       )}
+
+      <Achievements
+        stats={{
+          lessonsDone: view.levelsDone,
+          bestQuiz: Math.max(0, ...data.dsaAttempts.map((x) => Number(x.score))),
+          problemsSolved: data.solved.length,
+          assessments: data.assessments.length,
+          bestAssessment: Math.max(0, ...data.assessments.map((x) => Number(x.score ?? 0))),
+          interviews: data.interviews.length,
+          bestAts: view.bestAts ?? 0,
+          streak: view.streak,
+        }}
+      />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         {/* Skill assessments */}

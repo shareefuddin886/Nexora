@@ -1,201 +1,231 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import {
-  Code2,
-  Globe,
-  Bot,
-  Database,
-  Cloud,
-  ShieldCheck,
-  Smartphone,
-  Cpu,
   ArrowRight,
-  CheckCircle2,
-  Lock,
-  Sparkles,
   BookOpen,
-  Award,
+  Bot,
+  CheckCircle2,
+  Cloud,
+  Code2,
+  Cpu,
+  Database,
+  Globe,
+  Layers,
+  ListChecks,
+  Sparkles,
+  Target,
+  type LucideIcon,
 } from "lucide-react";
 import { useDsaProgress } from "@/hooks/useDsaProgress";
+import { useSolvedProblems } from "@/hooks/useSolvedProblems";
+import { dsaTopics, getAllLevels } from "@/lib/dsa-curriculum";
+import { allRoadmapProblems, dsaPhases } from "@/lib/dsa-roadmap";
+import { TONES, tint } from "@/lib/module-tones";
 
 export const Route = createFileRoute("/learning-hub/")({
   head: () => ({ meta: [{ title: "Learning Hub — Nexora" }] }),
   component: LearningHubPage,
 });
 
-interface CategoryCard {
-  id: string;
-  title: string;
-  desc: string;
-  icon: any;
-  status: "available" | "coming_soon";
-  topicsCount?: number;
-  levelBadge?: string;
-}
-
-const categories: CategoryCard[] = [
+const ROADMAP: { icon: LucideIcon; title: string; desc: string }[] = [
   {
-    id: "dsa",
-    title: "Data Structures & Algorithms (DSA)",
-    desc: "Master foundational to advanced DSA concepts with interactive theory, conceptual quizzes, and integrated coding problem verification.",
-    icon: Code2,
-    status: "available",
-    topicsCount: 16,
-    levelBadge: "Foundations to Advanced",
-  },
-  {
-    id: "web-dev",
-    title: "Full Stack Web Development",
-    desc: "Modern React, Next.js, TanStack Start, Node.js microservices, TypeScript architecture, and database integrations.",
     icon: Globe,
-    status: "coming_soon",
+    title: "Full Stack Web Development",
+    desc: "React, Node.js, TypeScript and databases",
   },
+  { icon: Cpu, title: "System Design", desc: "Scalability, caching, queues and sharding" },
   {
-    id: "ai-ml",
-    title: "AI & Machine Learning",
-    desc: "LLMs, LangChain, vector embeddings, Prompt Engineering, PyTorch foundations, and generative AI production pipelines.",
-    icon: Bot,
-    status: "coming_soon",
-  },
-  {
-    id: "system-design",
-    title: "System Design & Distributed Systems",
-    desc: "Scalability, caching, message queues, database sharding, CAP theorem, and high-concurrency architectures.",
-    icon: Cpu,
-    status: "coming_soon",
-  },
-  {
-    id: "database-engineering",
-    title: "Database Engineering & SQL",
-    desc: "Query optimization, indexing internals, ACID transactions, relational & NoSQL paradigms.",
     icon: Database,
-    status: "coming_soon",
+    title: "Database Engineering & SQL",
+    desc: "Indexing, transactions, query tuning",
   },
-  {
-    id: "cloud-devops",
-    title: "Cloud & DevOps (Docker, K8s, AWS)",
-    desc: "CI/CD pipelines, container orchestration, Terraform IaC, and resilient cloud deployments.",
-    icon: Cloud,
-    status: "coming_soon",
-  },
+  { icon: Bot, title: "AI & Machine Learning", desc: "LLMs, embeddings and ML foundations" },
+  { icon: Cloud, title: "Cloud & DevOps", desc: "Docker, Kubernetes, CI/CD and AWS" },
 ];
 
 function LearningHubPage() {
   const { progress } = useDsaProgress();
+  const { solved } = useSolvedProblems();
+  const allLevels = getAllLevels();
+  const next = allLevels.find(
+    (l) => !progress.completedLevels[`${l.topicId}_${l.level.id}`]?.completed,
+  );
+  const solvedCount = allRoadmapProblems.filter((p) => solved.has(p.id)).length;
+  const started = progress.totalCompleted > 0 || solvedCount > 0;
 
   return (
-    <div className="min-h-screen pt-10 pb-20 px-4 md:px-8 max-w-7xl mx-auto space-y-12">
-      {/* Hero section */}
-      <div className="text-center space-y-4 max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 glass text-xs font-semibold text-primary border border-primary/30">
+    <div className="mx-auto min-h-screen max-w-7xl space-y-14 px-4 pb-20 pt-10 md:px-8">
+      {/* Header */}
+      <header className="mx-auto max-w-3xl space-y-4 text-center">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 px-4 py-1.5 text-xs font-semibold text-primary glass">
           <Sparkles className="h-3.5 w-3.5" /> Nexora Learning Hub
         </div>
         <h1
-          className="text-4xl md:text-5xl font-black tracking-tight text-foreground"
+          className="text-4xl font-black tracking-tight md:text-5xl"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Structured Learning Modules for Top Engineers
+          Learn it properly, <span className="text-gradient-gold">one step at a time.</span>
         </h1>
-        <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-          Step-by-step interactive paths featuring theory, concept quizzes, real-time code execution, and curated practice problems.
+        <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
+          Guided paths with short lessons, concept quizzes, a built-in code editor and hand-picked
+          practice problems.
         </p>
-      </div>
+      </header>
 
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          const isAvailable = cat.status === "available";
-
-          return (
-            <div
-              key={cat.id}
-              className={`group relative rounded-3xl p-6 md:p-8 flex flex-col justify-between transition-all duration-300 ${
-                isAvailable
-                  ? "glass border-primary/40 shadow-glow hover:border-primary/80 hover:-translate-y-1"
-                  : "glass border-border/50 opacity-80"
-              }`}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`grid h-14 w-14 place-items-center rounded-2xl ${
-                      isAvailable
-                        ? "text-primary-foreground shadow-glow"
-                        : "bg-surface text-muted-foreground border border-border/60"
-                    }`}
-                    style={isAvailable ? { background: "var(--gradient-gold)" } : {}}
-                  >
-                    <Icon className="h-7 w-7" />
-                  </div>
-
-                  {isAvailable ? (
-                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Available Now
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-muted-foreground bg-surface border border-border/60">
-                      <Lock className="h-3.5 w-3.5 text-muted-foreground/60" /> Coming Soon
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className={`text-xl font-bold text-foreground font-display transition ${isAvailable ? "group-hover:text-primary" : ""}`}>
-                    {cat.title}
-                  </h3>
-                  <p className="mt-2 text-xs md:text-sm text-muted-foreground leading-relaxed">
-                    {cat.desc}
-                  </p>
-                </div>
-
-                {isAvailable && (
-                  <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="text-muted-foreground">Path Progress</span>
-                      <span className="text-primary font-bold">{progress.percentComplete}%</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-surface-2 overflow-hidden">
-                      <div
-                        className="h-full transition-all duration-500 rounded-full shadow-glow"
-                        style={{
-                          width: `${progress.percentComplete}%`,
-                          background: "var(--gradient-gold)",
-                        }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>{cat.topicsCount} Core Topics</span>
-                      <span>{progress.totalCompleted} / {progress.totalLevels} Levels Completed</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-6 mt-6 border-t border-border/60">
-                {isAvailable ? (
-                  <Link
-                    to="/learning-hub/dsa"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-xs md:text-sm font-bold text-primary-foreground shadow-glow transition hover:scale-[1.02]"
-                    style={{ background: "var(--gradient-gold)" }}
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    {progress.totalCompleted > 0 ? "Continue Learning DSA" : "Start Learning DSA"}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                ) : (
-                  <button
-                    disabled
-                    className="w-full py-2.5 rounded-xl glass text-xs font-semibold text-muted-foreground/60 cursor-not-allowed"
-                  >
-                    Module in Development
-                  </button>
-                )}
-              </div>
+      {/* Featured DSA path */}
+      <section className="relative overflow-hidden rounded-3xl border border-primary/30 bg-surface/40 shadow-glow backdrop-blur">
+        <div
+          className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full opacity-30 blur-3xl"
+          style={{ background: "var(--gradient-gold)" }}
+        />
+        <div className="relative grid gap-8 p-6 md:p-10 lg:grid-cols-[1.25fr_1fr]">
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className="grid h-14 w-14 place-items-center rounded-2xl text-primary-foreground shadow-glow"
+                style={{ background: "var(--gradient-gold)" }}
+              >
+                <Code2 className="h-7 w-7" />
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+                style={{ background: tint(TONES.resume, 0.12), color: TONES.resume }}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Available now
+              </span>
             </div>
-          );
-        })}
-      </div>
+            <h2
+              className="mt-5 text-3xl font-bold tracking-tight md:text-4xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Data Structures & Algorithms
+            </h2>
+            <p className="mt-3 max-w-xl text-muted-foreground">
+              From Big-O basics to dynamic programming — the exact topics placement interviews test,
+              in the order you should learn them.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Fact icon={Layers} value={dsaPhases.length} label="Steps" />
+              <Fact icon={Target} value={dsaTopics.length} label="Topics" />
+              <Fact icon={BookOpen} value={allLevels.length} label="Lessons" />
+              <Fact icon={ListChecks} value={allRoadmapProblems.length} label="Problems" />
+            </div>
+
+            <div className="mt-7 flex flex-wrap gap-3">
+              {next ? (
+                <Link
+                  to="/learning-hub/dsa/$topicId/$levelId"
+                  params={{ topicId: next.topicId, levelId: next.level.id }}
+                  className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-primary-foreground shadow-glow transition hover:scale-[1.02]"
+                  style={{ background: "var(--gradient-gold)" }}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  {started ? "Continue learning" : "Start learning"}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : null}
+              <Link
+                to="/learning-hub/dsa"
+                className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-surface/60 px-5 py-3 text-sm font-semibold transition hover:border-primary/50"
+              >
+                View full roadmap
+              </Link>
+            </div>
+          </div>
+
+          {/* Personal progress */}
+          <div className="rounded-2xl border border-border/60 bg-background/50 p-5 md:p-6">
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+              Your progress
+            </p>
+            <div className="mt-4 flex items-end gap-2">
+              <span className="text-5xl font-bold tabular-nums">{progress.percentComplete}%</span>
+              <span className="pb-2 text-sm text-muted-foreground">of the path</span>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${progress.percentComplete}%`,
+                  background: "var(--gradient-gold)",
+                }}
+              />
+            </div>
+            <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border border-border/50 p-3">
+                <dt className="text-xs text-muted-foreground">Lessons done</dt>
+                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
+                  {progress.totalCompleted}{" "}
+                  <span className="text-sm text-muted-foreground">/ {progress.totalLevels}</span>
+                </dd>
+              </div>
+              <div className="rounded-xl border border-border/50 p-3">
+                <dt className="text-xs text-muted-foreground">Problems solved</dt>
+                <dd className="mt-0.5 text-lg font-semibold tabular-nums">
+                  {solvedCount}{" "}
+                  <span className="text-sm text-muted-foreground">
+                    / {allRoadmapProblems.length}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+            {next && (
+              <div className="mt-4 rounded-xl p-3" style={{ background: tint(TONES.dsa, 0.08) }}>
+                <p className="text-xs text-muted-foreground">Up next</p>
+                <p className="mt-0.5 truncate text-sm font-semibold">
+                  {next.topic.title} · {next.level.title}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Roadmap */}
+      <section>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p
+              className="text-xs uppercase tracking-[0.28em]"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              <span style={{ color: "var(--gold)" }}>/</span>On the roadmap
+            </p>
+            <h2
+              className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              More paths are on the way
+            </h2>
+          </div>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {ROADMAP.map((r) => (
+            <div key={r.title} className="rounded-2xl border border-border/50 bg-surface/30 p-4">
+              <div className="flex items-center justify-between">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-muted-foreground">
+                  <r.icon className="h-5 w-5" />
+                </span>
+                <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Soon
+                </span>
+              </div>
+              <p className="mt-3 text-sm font-semibold">{r.title}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{r.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Fact({ icon: Icon, value, label }: { icon: LucideIcon; value: number; label: string }) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/40 p-3">
+      <Icon className="h-4 w-4 text-primary" />
+      <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }

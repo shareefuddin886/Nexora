@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MockInterviewRouteImport } from './routes/mock-interview'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ResumeBuilderRouteImport } from './routes/resume-builder'
 import { Route as ResumeReviewRouteImport } from './routes/resume-review'
@@ -45,6 +46,11 @@ const LoginRoute = LoginRouteImport.update({
 const MockInterviewRoute = MockInterviewRouteImport.update({
   id: '/mock-interview',
   path: '/mock-interview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/mock-interview': typeof MockInterviewRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resume-builder': typeof ResumeBuilderRoute
   '/resume-review': typeof ResumeReviewRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/mock-interview': typeof MockInterviewRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resume-builder': typeof ResumeBuilderRoute
   '/resume-review': typeof ResumeReviewRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/mock-interview': typeof MockInterviewRoute
+  '/profile': typeof ProfileRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resume-builder': typeof ResumeBuilderRoute
   '/resume-review': typeof ResumeReviewRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/mock-interview'
+    | '/profile'
     | '/reset-password'
     | '/resume-builder'
     | '/resume-review'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/mock-interview'
+    | '/profile'
     | '/reset-password'
     | '/resume-builder'
     | '/resume-review'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/mock-interview'
+    | '/profile'
     | '/reset-password'
     | '/resume-builder'
     | '/resume-review'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   MockInterviewRoute: typeof MockInterviewRoute
+  ProfileRoute: typeof ProfileRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ResumeBuilderRoute: typeof ResumeBuilderRoute
   ResumeReviewRoute: typeof ResumeReviewRoute
@@ -222,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/mock-interview'
       fullPath: '/mock-interview'
       preLoaderRoute: typeof MockInterviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   MockInterviewRoute: MockInterviewRoute,
+  ProfileRoute: ProfileRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ResumeBuilderRoute: ResumeBuilderRoute,
   ResumeReviewRoute: ResumeReviewRoute,
