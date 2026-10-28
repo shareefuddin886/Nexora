@@ -595,10 +595,14 @@ function SessionView({
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
   const [speechError, setSpeechError] = useState<string | null>(null);
+  // Words heard but not finalised yet, shown live while the user speaks.
+  const [interim, setInterim] = useState("");
 
   const recognitionRef = useRef<any>(null);
-  const isListeningRef = useRef(false);
-  isListeningRef.current = isListening;
+  // True while the user has the mic switched on. Browsers end recognition
+  // sessions on their own (silence, ~60s limits); we restart while this is set.
+  const wantListeningRef = useRef(false);
+  const lastFinalRef = useRef("");
 
   const question = questions[qIndex] ?? null;
   const total = questions.length || config.totalQuestions;
@@ -617,10 +621,16 @@ function SessionView({
       return;
     }
 
+    // Chrome on Android repeats words in continuous mode, so there we run
+    // short sessions and restart them back-to-back instead.
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = !isAndroid;
     recognition.interimResults = true;
-    recognition.lang = config.language === "hindi" ? "hi-IN" : "en-US";
+    recognition.maxAlternatives = 1;
+    // en-IN understands Indian-accented English far better than en-US.
+    recognition.lang = config.language === "hindi" ? "hi-IN" : "en-IN";
 
     recognition.onstart = () => {
       setIsListening(true);
@@ -628,42 +638,59 @@ function SessionView({
     };
 
     recognition.onresult = (event: any) => {
-      let currentTranscript = "";
+      let live = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const item = event.results[i];
+        const text = String(item[0]?.transcript ?? "").trim();
+        if (!text) continue;
         if (item.isFinal) {
-          const text = item[0].transcript.trim();
-          if (text) {
-            setAnswer((prev) => {
-              const cleaned = prev.trim();
-              if (!cleaned) return text;
-              return `${cleaned} ${text}`;
-            });
-          }
+          // Skip exact repeats (another Android quirk).
+          if (text.toLowerCase() === lastFinalRef.current.toLowerCase()) continue;
+          lastFinalRef.current = text;
+          setAnswer((prev) => {
+            const cleaned = prev.trimEnd();
+            const startsSentence = !cleaned || /[.?!]$/.test(cleaned);
+            const chunk = startsSentence ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+            return cleaned ? `${cleaned} ${chunk}` : chunk;
+          });
         } else {
-          currentTranscript += item[0].transcript;
+          live += (live ? " " : "") + text;
         }
       }
+      setInterim(live);
     };
 
     recognition.onerror = (event: any) => {
       console.warn("Speech recognition error:", event.error);
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setSpeechError("Microphone access was denied. Please allow mic permissions.");
-      } else if (event.error !== "no-speech") {
-        setSpeechError(`Voice input: ${event.error}`);
+      if (event.error === "no-speech" || event.error === "aborted") {
+        // Just silence or a restart: keep listening (onend restarts the session).
+        return;
       }
-      setIsListening(false);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        wantListeningRef.current = false;
+        setSpeechError("Microphone access was denied. Allow mic permission in your browser and try again.");
+      } else if (event.error === "audio-capture") {
+        wantListeningRef.current = false;
+        setSpeechError("No microphone was found. Check that a mic is connected.");
+      } else if (event.error === "network") {
+        setSpeechError("Voice typing needs an internet connection. Check your connection — you can also type your answer.");
+      } else {
+        setSpeechError(`Voice input problem: ${event.error}. You can keep typing your answer.`);
+      }
     };
 
     recognition.onend = () => {
-      // If user still intended to listen and wasn't manually stopped, restart (browser auto-cutoff handling)
-      if (isListeningRef.current) {
-        try {
-          recognition.start();
-        } catch {
-          setIsListening(false);
-        }
+      setInterim("");
+      if (wantListeningRef.current) {
+        // Browser ended the session (silence / time limit): start a new one.
+        setTimeout(() => {
+          if (!wantListeningRef.current) return;
+          try {
+            recognition.start();
+          } catch {
+            // Already started; ignore.
+          }
+        }, 150);
       } else {
         setIsListening(false);
       }
@@ -672,7 +699,7 @@ function SessionView({
     recognitionRef.current = recognition;
 
     return () => {
-      isListeningRef.current = false;
+      wantListeningRef.current = false;
       try {
         recognition.stop();
       } catch {
@@ -689,18 +716,14 @@ function SessionView({
     const recognition = recognitionRef.current;
     if (!recognition) return;
 
-    if (isListening) {
-      isListeningRef.current = false;
-      try {
-        recognition.stop();
-      } catch {
-        // ignore
-      }
-      setIsListening(false);
+    if (wantListeningRef.current) {
+      stopListening();
     } else {
+      setSpeechError(null);
+      lastFinalRef.current = "";
+      wantListeningRef.current = true;
+      setIsListening(true);
       try {
-        setSpeechError(null);
-        isListeningRef.current = true;
         recognition.start();
       } catch (err) {
         console.warn("Error starting speech recognition:", err);
@@ -710,7 +733,8 @@ function SessionView({
 
   // Stop mic whenever we navigate/advance/submit
   const stopListening = () => {
-    isListeningRef.current = false;
+    wantListeningRef.current = false;
+    setInterim("");
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -1005,6 +1029,12 @@ function SessionView({
                   }
                   className="w-full min-h-[220px] resize-y rounded-2xl bg-surface/30 border border-border/30 p-4 text-[15px] leading-relaxed focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground transition-colors"
                 />
+
+                {isListening && interim && (
+                  <p className="mt-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-sm italic text-foreground/80" aria-live="polite">
+                    {interim}…
+                  </p>
+                )}
 
                 {isListening && (
                   <div className="absolute right-4 bottom-4 pointer-events-none flex items-center gap-1 bg-background/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-border/60">
