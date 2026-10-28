@@ -6,6 +6,19 @@ import { getRequest } from "@tanstack/react-start/server";
 const DEFAULT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"];
 const CALL_TIMEOUT_MS = 25_000;
 
+/**
+ * Each AI feature can use its own key (ideally from its own Google Cloud
+ * project, since Gemini quotas are per project). If a feature key is not
+ * set — or runs out of quota — the shared GEMINI_API_KEY is used.
+ */
+export type AiFeature = "assessment" | "interview" | "resume" | "review";
+const FEATURE_KEY_ENV: Record<AiFeature, string> = {
+  assessment: "GEMINI_API_KEY_ASSESSMENT",
+  interview: "GEMINI_API_KEY_INTERVIEW",
+  resume: "GEMINI_API_KEY_RESUME",
+  review: "GEMINI_API_KEY_REVIEW",
+};
+
 // Per-visitor limit on AI calls. In-memory, so it is per server instance:
 // it stops scripted abuse of one warm instance but is not a global quota —
 // also set a budget alert / spending cap on the Google Cloud project.
@@ -18,11 +31,7 @@ export class AiUserError extends Error {}
 function clientKey(): string {
   try {
     const headers = getRequest()?.headers;
-    const ip =
-      headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      headers?.get("x-real-ip") ||
-      "unknown";
-    return ip;
+    return headers?.get("x-forwarded-for")?.split(",")[0]?.trim() || headers?.get("x-real-ip") || "unknown";
   } catch {
     return "unknown";
   }
@@ -40,18 +49,20 @@ function enforceRateLimit() {
   if (hits.size > 5000) hits.clear(); // bound memory on long-lived instances
 }
 
-function provider() {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey || apiKey === "your_actual_key_here") {
-    console.error("[gemini] GEMINI_API_KEY is not configured");
-    throw new AiUserError("The AI service is not configured right now. Please try again later.");
-  }
-  return createGoogleGenerativeAI({ apiKey });
+const validKey = (k: string | undefined) => {
+  const v = k?.trim();
+  return v && v !== "your_actual_key_here" ? v : undefined;
+};
+
+/** Keys to try for a feature: its own key first, then the shared key. */
+function keysFor(feature?: AiFeature): string[] {
+  const own = feature ? validKey(process.env[FEATURE_KEY_ENV[feature]]) : undefined;
+  const shared = validKey(process.env.GEMINI_API_KEY);
+  return [...new Set([own, shared].filter((k): k is string => !!k))];
 }
 
-export function isGeminiConfigured() {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  return Boolean(apiKey && apiKey !== "your_actual_key_here");
+export function isGeminiConfigured(feature?: AiFeature) {
+  return keysFor(feature).length > 0;
 }
 
 function candidateModels() {
@@ -59,44 +70,59 @@ function candidateModels() {
   return fromEnv?.length ? fromEnv : DEFAULT_MODELS;
 }
 
+const statusOf = (err: unknown) => (err as { statusCode?: number })?.statusCode;
+
 // Only overload / timeout / network problems are worth trying another model for.
 function isRetryable(err: unknown): boolean {
-  const e = err as { statusCode?: number; name?: string; message?: string };
+  const e = err as { name?: string; message?: string };
   if (e?.name === "TimeoutError" || e?.name === "AbortError") return true;
-  if (typeof e?.statusCode === "number") return e.statusCode === 429 || e.statusCode >= 500;
+  const status = statusOf(err);
+  if (typeof status === "number") return status === 429 || status >= 500;
   return /fetch failed|network|ECONNRESET|overloaded|unavailable/i.test(e?.message ?? "");
 }
 
 /**
  * Runs a Gemini text generation with a per-visitor rate limit, a timeout,
- * and fallback to the next model only when a model is busy or unavailable.
+ * fallback to the next model when one is busy, and fallback to the shared
+ * key when a feature's own key is out of quota or rejected.
  */
-export async function generateWithGeminiFallback(options: { system?: string; prompt: string }) {
+export async function generateWithGeminiFallback(options: {
+  system?: string;
+  prompt: string;
+  feature?: AiFeature;
+}) {
   enforceRateLimit();
-  const google = provider();
-  let lastError: unknown = null;
+  const keys = keysFor(options.feature);
+  if (!keys.length) {
+    console.error("[gemini] no API key configured", options.feature ?? "");
+    throw new AiUserError("The AI service is not configured right now. Please try again later.");
+  }
 
-  for (const modelName of candidateModels()) {
-    try {
-      return await generateText({
-        model: google(modelName),
-        system: options.system,
-        prompt: options.prompt,
-        maxRetries: 1,
-        abortSignal: AbortSignal.timeout(CALL_TIMEOUT_MS),
-      });
-    } catch (err) {
-      lastError = err;
-      console.warn(`[gemini] ${modelName} failed:`, (err as Error)?.message ?? err);
-      if (!isRetryable(err)) break;
+  let lastError: unknown = null;
+  for (const [ki, apiKey] of keys.entries()) {
+    const google = createGoogleGenerativeAI({ apiKey });
+    for (const modelName of candidateModels()) {
+      try {
+        return await generateText({
+          model: google(modelName),
+          system: options.system,
+          prompt: options.prompt,
+          maxRetries: 1,
+          abortSignal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+        });
+      } catch (err) {
+        lastError = err;
+        const which = ki === 0 && keys.length > 1 ? "feature key" : "key";
+        console.warn(`[gemini] ${options.feature ?? "shared"} ${which} / ${modelName} failed:`, (err as Error)?.message ?? err);
+        if (!isRetryable(err)) break; // bad key or bad request: try the next key, not the next model
+      }
     }
   }
 
-  console.error("[gemini] all models failed", lastError);
-  const status = (lastError as { statusCode?: number })?.statusCode;
+  console.error("[gemini] all keys and models failed", lastError);
+  const status = statusOf(lastError);
   if (status === 400 || status === 401 || status === 403) {
-    // Invalid/disabled API key or bad request: retrying won't help.
-    console.error("[gemini] check GEMINI_API_KEY — Google rejected the request with", status);
+    console.error("[gemini] check the API key(s) — Google rejected the request with", status);
     throw new AiUserError("The AI service is unavailable right now. Please try again later.");
   }
   throw new AiUserError("The AI service is busy right now. Please try again in a moment.");

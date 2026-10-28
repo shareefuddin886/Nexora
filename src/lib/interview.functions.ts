@@ -79,7 +79,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
       totalQuestions: total,
     });
 
-    const model = isGeminiConfigured();
+    const model = isGeminiConfigured("interview");
     if (!model) return { questions: fallback, source: "bank" as const };
 
     try {
@@ -91,6 +91,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
             : `About 40% HR/behavioural and 60% technical, spread evenly across: ${data.skills.join(", ") || "software engineering"}.`;
 
       const { text } = await generateWithGeminiFallback({
+        feature: "interview",
         system: systemPrompt(data),
         prompt: `Generate exactly ${total} realistic, commonly asked interview questions.
 ${mix}
@@ -159,11 +160,12 @@ export const evaluateAnswer = createServerFn({ method: "POST" })
       isLast,
     };
 
-    const model = isGeminiConfigured();
+    const model = isGeminiConfigured("interview");
     if (!model) return offline;
 
     try {
       const { text } = await generateWithGeminiFallback({
+        feature: "interview",
         system: systemPrompt(data.config),
         prompt: `Question asked: "${data.currentQuestion}"
 Candidate answer: "${data.answer}"
@@ -240,10 +242,11 @@ function offlineReport(data: z.infer<typeof ReportInput>): InterviewReport {
 export const generateReport = createServerFn({ method: "POST" })
   .validator((d: unknown) => ReportInput.parse(d))
   .handler(async ({ data }): Promise<InterviewReport> => {
-    const model = isGeminiConfigured();
+    const model = isGeminiConfigured("interview");
     if (!model) return offlineReport(data);
     try {
       const { text } = await generateWithGeminiFallback({
+        feature: "interview",
         system: systemPrompt(data.config),
         prompt: `Full interview transcript with scores: ${JSON.stringify(data.history)}.
 Produce the final performance report as ONLY JSON:

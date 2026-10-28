@@ -214,6 +214,7 @@ export const reviewResume = createServerFn({ method: "POST" })
       let parsed: Record<string, unknown>;
       try {
         const { text } = await generateWithGeminiFallback({
+          feature: "review",
           system: SYSTEM,
           prompt: prompt(data.resumeText, jobText),
         });

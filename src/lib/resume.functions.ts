@@ -44,9 +44,10 @@ Return JSON strictly in this format:
 {"improved": "the revised text here"}`;
 
     try {
-      const model = isGeminiConfigured();
+      const model = isGeminiConfigured("resume");
       if (model) {
         const { text } = await generateWithGeminiFallback({
+          feature: "resume",
           system:
             "You are an elite technical resume coach and FAANG recruiter. Return ONLY valid JSON with the key 'improved'. Never add markdown code fences or conversational text.",
           prompt,
@@ -106,9 +107,10 @@ export const analyzeResume = createServerFn({ method: "POST" })
   .validator((d: unknown) => AnalyzeInput.parse(d))
   .handler(async ({ data }) => {
     try {
-      const model = isGeminiConfigured();
+      const model = isGeminiConfigured("resume");
       if (model) {
         const { text } = await generateWithGeminiFallback({
+          feature: "resume",
           system:
             "You are a senior technical recruiter and ATS auditor. Return valid JSON matching: score (0-100), atsScore (0-100), strengths (array of string), improvements (array of string), missingKeywords (array of string), strongerVerbs (array of string), grammar (array of string).",
           prompt: `Audit this resume JSON and return structured feedback:\n${data.resume}`,
@@ -158,9 +160,10 @@ export const liveTips = createServerFn({ method: "POST" })
   .validator((d: unknown) => LiveTipsInput.parse(d))
   .handler(async ({ data }) => {
     try {
-      const model = isGeminiConfigured();
+      const model = isGeminiConfigured("resume");
       if (model) {
         const { text } = await generateWithGeminiFallback({
+          feature: "resume",
           system:
             "You are a resume assistant. Return valid JSON: { \"tips\": [{\"type\": \"success\"|\"warning\"|\"idea\"|\"sparkle\", \"text\": \"string\"}] }. Short, specific, actionable tips (max 12 words each).",
           prompt: `Look at this resume JSON and return quick suggestions:\n${data.resume}`,

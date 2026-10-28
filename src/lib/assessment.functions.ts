@@ -51,6 +51,7 @@ export const generateAssessment = createServerFn({ method: "POST" })
     const ResSchema = z.object({ questions: z.array(QuestionSchema) });
     const run = async () => {
       const { text } = await generateWithGeminiFallback({
+        feature: "assessment",
         system:
           'You are a senior technical interviewer. Output ONLY a JSON object matching: {"questions":[{"id":string,"type":"mcq"|"code"|"scenario","topic":string,"prompt":string,"code":string|null,"options":string[]|null,"correctIndex":number|null,"correctAnswer":string|null,"explanation":string}]}. For mcq: options length 4, correctIndex 0-3, code=null, correctAnswer=null. For code: put snippet in code (non-null), options length 4, correctIndex 0-3, correctAnswer=null. For scenario: options=null, correctIndex=null, code=null, correctAnswer is a 2-4 sentence model answer. explanation is always required and non-empty. Return ONLY valid JSON, no markdown fences, no surrounding text.',
         prompt: `Create ${data.count} ${data.difficulty} questions for ${data.technology}. ${modeHint} Vary topics. Unique short ids q1..q${data.count}.`,
@@ -138,6 +139,7 @@ export const evaluateAssessment = createServerFn({ method: "POST" })
     });
 
     const { text } = await generateWithGeminiFallback({
+      feature: "assessment",
       system:
         'You are a fair but strict technical evaluator. Output ONLY a JSON object with keys: scenarioScores[{id,score(0-10),feedback}], overallScore(0-100), radar{accuracy,problemSolving,conceptUnderstanding,confidence,codingSkill,communication all 0-100}, interviewReadiness(0-100), skillLevel("Beginner"|"Intermediate"|"Advanced"|"Expert"), companiesReady[string], companiesNeedsImprovement[string], strengths[string], weaknesses[string], weakTopics[string], learningPath[{topic,resource,reason}], summary. No prose, no markdown.',
       prompt: `Technology: ${data.technology} (${data.difficulty}).\nAnswers:\n${JSON.stringify(items)}\n\nGrade scenarios by id. Combine auto-graded MCQ/code (each 10) with scenario scores for overallScore. Return 2-5 strengths, 2-5 weaknesses, weak topic tags, 3-5 learning-path items. Companies: 3-6 ready, 2-5 need improvement.`,
