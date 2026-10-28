@@ -93,6 +93,12 @@ export async function generateWithGeminiFallback(options: { system?: string; pro
   }
 
   console.error("[gemini] all models failed", lastError);
+  const status = (lastError as { statusCode?: number })?.statusCode;
+  if (status === 400 || status === 401 || status === 403) {
+    // Invalid/disabled API key or bad request: retrying won't help.
+    console.error("[gemini] check GEMINI_API_KEY — Google rejected the request with", status);
+    throw new AiUserError("The AI service is unavailable right now. Please try again later.");
+  }
   throw new AiUserError("The AI service is busy right now. Please try again in a moment.");
 }
 
