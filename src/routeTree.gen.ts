@@ -24,6 +24,7 @@ import { Route as LearningHubTrackIdIndexRouteImport } from './routes/learning-h
 import { Route as LearningHubTrackIdLessonIdRouteImport } from './routes/learning-hub.$trackId.$lessonId'
 import { Route as LearningHubDsaIndexRouteImport } from './routes/learning-hub.dsa.index'
 import { Route as LearningHubDsaTopicIdLevelIdRouteImport } from './routes/learning-hub.dsa.$topicId.$levelId'
+import { Route as LearningHubDsaProblemsProblemIdRouteImport } from './routes/learning-hub.dsa.problems.$problemId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -102,6 +103,12 @@ const LearningHubDsaTopicIdLevelIdRoute =
     path: '/learning-hub/dsa/$topicId/$levelId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LearningHubDsaProblemsProblemIdRoute =
+  LearningHubDsaProblemsProblemIdRouteImport.update({
+    id: '/learning-hub/dsa/problems/$problemId',
+    path: '/learning-hub/dsa/problems/$problemId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/learning-hub/$trackId/': typeof LearningHubTrackIdIndexRoute
   '/learning-hub/dsa/': typeof LearningHubDsaIndexRoute
   '/learning-hub/dsa/$topicId/$levelId': typeof LearningHubDsaTopicIdLevelIdRoute
+  '/learning-hub/dsa/problems/$problemId': typeof LearningHubDsaProblemsProblemIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,6 +144,7 @@ export interface FileRoutesByTo {
   '/learning-hub/$trackId': typeof LearningHubTrackIdIndexRoute
   '/learning-hub/dsa': typeof LearningHubDsaIndexRoute
   '/learning-hub/dsa/$topicId/$levelId': typeof LearningHubDsaTopicIdLevelIdRoute
+  '/learning-hub/dsa/problems/$problemId': typeof LearningHubDsaProblemsProblemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -154,6 +163,7 @@ export interface FileRoutesById {
   '/learning-hub/$trackId/': typeof LearningHubTrackIdIndexRoute
   '/learning-hub/dsa/': typeof LearningHubDsaIndexRoute
   '/learning-hub/dsa/$topicId/$levelId': typeof LearningHubDsaTopicIdLevelIdRoute
+  '/learning-hub/dsa/problems/$problemId': typeof LearningHubDsaProblemsProblemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/learning-hub/$trackId/'
     | '/learning-hub/dsa/'
     | '/learning-hub/dsa/$topicId/$levelId'
+    | '/learning-hub/dsa/problems/$problemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/learning-hub/$trackId'
     | '/learning-hub/dsa'
     | '/learning-hub/dsa/$topicId/$levelId'
+    | '/learning-hub/dsa/problems/$problemId'
   id:
     | '__root__'
     | '/'
@@ -207,6 +219,7 @@ export interface FileRouteTypes {
     | '/learning-hub/$trackId/'
     | '/learning-hub/dsa/'
     | '/learning-hub/dsa/$topicId/$levelId'
+    | '/learning-hub/dsa/problems/$problemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -225,6 +238,7 @@ export interface RootRouteChildren {
   LearningHubTrackIdIndexRoute: typeof LearningHubTrackIdIndexRoute
   LearningHubDsaIndexRoute: typeof LearningHubDsaIndexRoute
   LearningHubDsaTopicIdLevelIdRoute: typeof LearningHubDsaTopicIdLevelIdRoute
+  LearningHubDsaProblemsProblemIdRoute: typeof LearningHubDsaProblemsProblemIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -334,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearningHubDsaTopicIdLevelIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learning-hub/dsa/problems/$problemId': {
+      id: '/learning-hub/dsa/problems/$problemId'
+      path: '/learning-hub/dsa/problems/$problemId'
+      fullPath: '/learning-hub/dsa/problems/$problemId'
+      preLoaderRoute: typeof LearningHubDsaProblemsProblemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -353,6 +374,7 @@ const rootRouteChildren: RootRouteChildren = {
   LearningHubTrackIdIndexRoute: LearningHubTrackIdIndexRoute,
   LearningHubDsaIndexRoute: LearningHubDsaIndexRoute,
   LearningHubDsaTopicIdLevelIdRoute: LearningHubDsaTopicIdLevelIdRoute,
+  LearningHubDsaProblemsProblemIdRoute: LearningHubDsaProblemsProblemIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

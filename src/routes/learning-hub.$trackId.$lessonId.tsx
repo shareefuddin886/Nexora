@@ -15,7 +15,8 @@ import {
 import { toast } from "sonner";
 import { LevelQuiz } from "@/components/LevelQuiz";
 import { SectionLabel } from "@/components/dsa/DsaUi";
-import { PracticeWorkspace } from "@/components/tracks/PracticeWorkspace";
+import { ProblemWorkspace } from "@/components/workspace/ProblemWorkspace";
+import { exerciseProblem } from "@/components/workspace/problem-adapters";
 import { InterviewPrep, LessonArticle } from "@/components/tracks/TrackUi";
 import { useTrackProgress } from "@/hooks/useTrackProgress";
 import { getTrack, trackLessons } from "@/lib/tracks";
@@ -178,11 +179,10 @@ function LessonView({ trackId, lessonId }: { trackId: string; lessonId: string }
 
       {tab === "practice" && lesson.practice ? (
         <div className="mt-8">
-          <PracticeWorkspace
-            exercise={lesson.practice}
-            draftId={`${trackId}/${lessonId}`}
+          <ProblemWorkspace
+            problem={exerciseProblem(`${trackId}/${lessonId}`, lesson.practice)}
             solved={p.practiceDone}
-            onSolved={onPracticeSolved}
+            onAccepted={onPracticeSolved}
           />
         </div>
       ) : (

@@ -50,7 +50,7 @@ const TABS: { id: TabMode; label: string; icon: typeof MapIcon }[] = [
   { id: "roadmap", label: "Roadmap", icon: MapIcon },
   { id: "sheets", label: "Practice Sheets", icon: ListChecks },
   { id: "visualizer", label: "Visualizer", icon: Activity },
-  { id: "studio", label: "Code Editor", icon: Code2 },
+  { id: "studio", label: "Problems", icon: Code2 },
 ];
 
 function topicMatches(topic: DsaTopic, query: string) {

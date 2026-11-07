@@ -1,5 +1,7 @@
+import { Link } from "@tanstack/react-router";
 import { Check, ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
+import { getDsaProblem } from "@/lib/dsa-problems";
 import { leetcodeUrl, type RoadmapProblem } from "@/lib/dsa-roadmap";
 
 type Difficulty = "Easy" | "Medium" | "Hard" | "Beginner" | "Intermediate" | "Advanced";
@@ -91,16 +93,29 @@ export function ProblemList({
               label={problem.title}
               onToggle={() => onToggle(problem.id)}
             />
-            <a
-              href={leetcodeUrl(problem.id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`min-w-0 flex-1 truncate text-sm transition hover:text-primary ${
-                solved ? "text-muted-foreground" : "text-foreground"
-              }`}
-            >
-              {problem.title}
-            </a>
+            {getDsaProblem(problem.id) ? (
+              <Link
+                to="/learning-hub/dsa/problems/$problemId"
+                params={{ problemId: problem.id }}
+                title="Solve in Nexora with a full editorial"
+                className={`min-w-0 flex-1 truncate text-sm transition hover:text-primary ${
+                  solved ? "text-muted-foreground" : "text-foreground"
+                }`}
+              >
+                {problem.title}
+              </Link>
+            ) : (
+              <a
+                href={leetcodeUrl(problem.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`min-w-0 flex-1 truncate text-sm transition hover:text-primary ${
+                  solved ? "text-muted-foreground" : "text-foreground"
+                }`}
+              >
+                {problem.title}
+              </a>
+            )}
             <DifficultyBadge value={problem.difficulty} />
             <a
               href={leetcodeUrl(problem.id)}

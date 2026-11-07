@@ -38,6 +38,20 @@ export function RichText({ text }: { text: string }) {
   );
 }
 
+/** Text split into paragraphs (by array items or line breaks), with inline formatting. */
+export function Paragraphs({ text }: { text: string | string[] }) {
+  const parts = Array.isArray(text) ? text : text.split(/\n+/);
+  return (
+    <div className="space-y-3">
+      {parts.map((p, i) => (
+        <p key={i}>
+          <RichText text={p} />
+        </p>
+      ))}
+    </div>
+  );
+}
+
 const LANGUAGE_LABEL: Record<string, string> = {
   javascript: "JavaScript",
   typescript: "TypeScript",

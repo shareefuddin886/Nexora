@@ -16,7 +16,8 @@ import { getRoadmapTopic } from "@/lib/dsa-roadmap";
 import { useDsaProgress } from "@/hooks/useDsaProgress";
 import { useSolvedProblems } from "@/hooks/useSolvedProblems";
 import { LevelQuiz } from "@/components/LevelQuiz";
-import { CodingWorkspace } from "@/components/CodingWorkspace";
+import { ProblemWorkspace } from "@/components/workspace/ProblemWorkspace";
+import { dsaProblem } from "@/components/workspace/problem-adapters";
 import { DifficultyBadge, ProblemList, SectionLabel } from "@/components/dsa/DsaUi";
 import { toast } from "sonner";
 
@@ -84,6 +85,9 @@ function LessonView({ topicId, levelId }: { topicId: string; levelId: string }) 
   const isCodingDone = levelState?.codingCompleted ?? false;
   const isCompleted = levelState?.completed ?? false;
   const hasCoding = level.requiresCoding && Boolean(level.codingChallenge);
+
+  // The workspace keys its state on the problem id, so rebuilding this each render is fine.
+  const workspaceProblem = level.codingChallenge ? dsaProblem(level.codingChallenge, level) : null;
 
   const handleQuizPassed = (score: number) => {
     // Store the quiz score as a percentage so it compares across levels.
@@ -173,13 +177,10 @@ function LessonView({ topicId, levelId }: { topicId: string; levelId: string }) 
       {/* Coding gets the full width; other tabs get the topic sidebar */}
       {activeTab === "code" && hasCoding && level.codingChallenge ? (
         <div className="mt-8">
-          <CodingWorkspace
-            challenge={level.codingChallenge}
-            topicId={topicId}
-            levelId={levelId}
-            onSuccess={handleCodingSuccess}
-            savedCode={levelState?.lastCodeSnippet}
-            isAlreadyCompleted={isCodingDone}
+          <ProblemWorkspace
+            problem={workspaceProblem!}
+            solved={isCodingDone}
+            onAccepted={(code) => handleCodingSuccess(code)}
           />
         </div>
       ) : (
