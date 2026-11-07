@@ -2,7 +2,7 @@
 // can never touch the server and an infinite loop only kills its own worker.
 // JavaScript runs directly, TypeScript is stripped to JavaScript with sucrase,
 // and Python runs on Pyodide (real CPython compiled to WebAssembly).
-import { getAllLevels } from "./dsa-curriculum";
+import { getAllLevels, type TestCase } from "./dsa-curriculum";
 
 export type RunnableLanguage = "javascript" | "typescript" | "python";
 
@@ -110,7 +110,9 @@ self.onmessage = async (e) => {
         const fn = factory(consoleShim);
         if (!fn) throw new Error("Function '" + functionName + "' is not defined. Keep the function name from the template.");
         const args = JSON.parse("[" + input + "]");
-        results.push({ actual: fmt(fn(...args)), logs: logs.join("\\n") });
+        let value = fn(...args);
+        if (value && typeof value.then === "function") value = await value;
+        results.push({ actual: fmt(value), logs: logs.join("\\n") });
       } catch (err) {
         results.push({ actual: "", logs: logs.join("\\n"), error: String(err.message || err) });
       }
@@ -222,6 +224,24 @@ export async function runChallenge(opts: {
   );
   const challenge = level?.level.codingChallenge;
   if (!challenge) throw new Error("No coding challenge found for this level.");
+  return runTests({
+    language: opts.language,
+    code: opts.code,
+    mode: opts.mode,
+    functionName: challenge.functionName,
+    testCases: challenge.testCases,
+  });
+}
+
+/** Runs learner code against any list of test cases (used by DSA and the other tracks). */
+export async function runTests(opts: {
+  language: RunnableLanguage;
+  code: string;
+  mode: "run" | "submit";
+  functionName: string;
+  testCases: TestCase[];
+}): Promise<CodeExecutionResult> {
+  const challenge = { functionName: opts.functionName, testCases: opts.testCases };
 
   // "Run" checks the visible samples; "Submit" checks every case, hidden ones included.
   const cases = opts.mode === "run" ? challenge.testCases.slice(0, 2) : challenge.testCases;

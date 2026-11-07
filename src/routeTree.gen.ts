@@ -20,6 +20,8 @@ import { Route as ResumeBuilderRouteImport } from './routes/resume-builder'
 import { Route as ResumeReviewRouteImport } from './routes/resume-review'
 import { Route as SkillAssessmentRouteImport } from './routes/skill-assessment'
 import { Route as LearningHubIndexRouteImport } from './routes/learning-hub.index'
+import { Route as LearningHubTrackIdIndexRouteImport } from './routes/learning-hub.$trackId.index'
+import { Route as LearningHubTrackIdLessonIdRouteImport } from './routes/learning-hub.$trackId.$lessonId'
 import { Route as LearningHubDsaIndexRouteImport } from './routes/learning-hub.dsa.index'
 import { Route as LearningHubDsaTopicIdLevelIdRouteImport } from './routes/learning-hub.dsa.$topicId.$levelId'
 
@@ -78,6 +80,17 @@ const LearningHubIndexRoute = LearningHubIndexRouteImport.update({
   path: '/learning-hub/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearningHubTrackIdIndexRoute = LearningHubTrackIdIndexRouteImport.update({
+  id: '/learning-hub/$trackId/',
+  path: '/learning-hub/$trackId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearningHubTrackIdLessonIdRoute =
+  LearningHubTrackIdLessonIdRouteImport.update({
+    id: '/learning-hub/$trackId/$lessonId',
+    path: '/learning-hub/$trackId/$lessonId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LearningHubDsaIndexRoute = LearningHubDsaIndexRouteImport.update({
   id: '/learning-hub/dsa/',
   path: '/learning-hub/dsa/',
@@ -102,6 +115,8 @@ export interface FileRoutesByFullPath {
   '/resume-review': typeof ResumeReviewRoute
   '/skill-assessment': typeof SkillAssessmentRoute
   '/learning-hub/': typeof LearningHubIndexRoute
+  '/learning-hub/$trackId/$lessonId': typeof LearningHubTrackIdLessonIdRoute
+  '/learning-hub/$trackId/': typeof LearningHubTrackIdIndexRoute
   '/learning-hub/dsa/': typeof LearningHubDsaIndexRoute
   '/learning-hub/dsa/$topicId/$levelId': typeof LearningHubDsaTopicIdLevelIdRoute
 }
@@ -117,6 +132,8 @@ export interface FileRoutesByTo {
   '/resume-review': typeof ResumeReviewRoute
   '/skill-assessment': typeof SkillAssessmentRoute
   '/learning-hub': typeof LearningHubIndexRoute
+  '/learning-hub/$trackId/$lessonId': typeof LearningHubTrackIdLessonIdRoute
+  '/learning-hub/$trackId': typeof LearningHubTrackIdIndexRoute
   '/learning-hub/dsa': typeof LearningHubDsaIndexRoute
   '/learning-hub/dsa/$topicId/$levelId': typeof LearningHubDsaTopicIdLevelIdRoute
 }
@@ -133,6 +150,8 @@ export interface FileRoutesById {
   '/resume-review': typeof ResumeReviewRoute
   '/skill-assessment': typeof SkillAssessmentRoute
   '/learning-hub/': typeof LearningHubIndexRoute
+  '/learning-hub/$trackId/$lessonId': typeof LearningHubTrackIdLessonIdRoute
+  '/learning-hub/$trackId/': typeof LearningHubTrackIdIndexRoute
   '/learning-hub/dsa/': typeof LearningHubDsaIndexRoute
   '/learning-hub/dsa/$topicId/$levelId': typeof LearningHubDsaTopicIdLevelIdRoute
 }
@@ -150,6 +169,8 @@ export interface FileRouteTypes {
     | '/resume-review'
     | '/skill-assessment'
     | '/learning-hub/'
+    | '/learning-hub/$trackId/$lessonId'
+    | '/learning-hub/$trackId/'
     | '/learning-hub/dsa/'
     | '/learning-hub/dsa/$topicId/$levelId'
   fileRoutesByTo: FileRoutesByTo
@@ -165,6 +186,8 @@ export interface FileRouteTypes {
     | '/resume-review'
     | '/skill-assessment'
     | '/learning-hub'
+    | '/learning-hub/$trackId/$lessonId'
+    | '/learning-hub/$trackId'
     | '/learning-hub/dsa'
     | '/learning-hub/dsa/$topicId/$levelId'
   id:
@@ -180,6 +203,8 @@ export interface FileRouteTypes {
     | '/resume-review'
     | '/skill-assessment'
     | '/learning-hub/'
+    | '/learning-hub/$trackId/$lessonId'
+    | '/learning-hub/$trackId/'
     | '/learning-hub/dsa/'
     | '/learning-hub/dsa/$topicId/$levelId'
   fileRoutesById: FileRoutesById
@@ -196,6 +221,8 @@ export interface RootRouteChildren {
   ResumeReviewRoute: typeof ResumeReviewRoute
   SkillAssessmentRoute: typeof SkillAssessmentRoute
   LearningHubIndexRoute: typeof LearningHubIndexRoute
+  LearningHubTrackIdLessonIdRoute: typeof LearningHubTrackIdLessonIdRoute
+  LearningHubTrackIdIndexRoute: typeof LearningHubTrackIdIndexRoute
   LearningHubDsaIndexRoute: typeof LearningHubDsaIndexRoute
   LearningHubDsaTopicIdLevelIdRoute: typeof LearningHubDsaTopicIdLevelIdRoute
 }
@@ -279,6 +306,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LearningHubIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learning-hub/$trackId/': {
+      id: '/learning-hub/$trackId/'
+      path: '/learning-hub/$trackId'
+      fullPath: '/learning-hub/$trackId/'
+      preLoaderRoute: typeof LearningHubTrackIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learning-hub/$trackId/$lessonId': {
+      id: '/learning-hub/$trackId/$lessonId'
+      path: '/learning-hub/$trackId/$lessonId'
+      fullPath: '/learning-hub/$trackId/$lessonId'
+      preLoaderRoute: typeof LearningHubTrackIdLessonIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/learning-hub/dsa/': {
       id: '/learning-hub/dsa/'
       path: '/learning-hub/dsa'
@@ -308,6 +349,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResumeReviewRoute: ResumeReviewRoute,
   SkillAssessmentRoute: SkillAssessmentRoute,
   LearningHubIndexRoute: LearningHubIndexRoute,
+  LearningHubTrackIdLessonIdRoute: LearningHubTrackIdLessonIdRoute,
+  LearningHubTrackIdIndexRoute: LearningHubTrackIdIndexRoute,
   LearningHubDsaIndexRoute: LearningHubDsaIndexRoute,
   LearningHubDsaTopicIdLevelIdRoute: LearningHubDsaTopicIdLevelIdRoute,
 }

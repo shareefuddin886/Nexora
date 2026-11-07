@@ -2,19 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   BookOpen,
-  Bot,
   CheckCircle2,
-  Cloud,
+  Clock,
   Code2,
-  Cpu,
-  Database,
-  Globe,
   Layers,
   ListChecks,
   Sparkles,
   Target,
   type LucideIcon,
 } from "lucide-react";
+import { ProgressBar } from "@/components/dsa/DsaUi";
+import { TRACK_ICONS } from "@/components/tracks/track-icons";
+import { useTrackProgress } from "@/hooks/useTrackProgress";
+import { tracks, trackStats, type Track } from "@/lib/tracks";
 import { useDsaProgress } from "@/hooks/useDsaProgress";
 import { useSolvedProblems } from "@/hooks/useSolvedProblems";
 import { dsaTopics, getAllLevels } from "@/lib/dsa-curriculum";
@@ -26,25 +26,10 @@ export const Route = createFileRoute("/learning-hub/")({
   component: LearningHubPage,
 });
 
-const ROADMAP: { icon: LucideIcon; title: string; desc: string }[] = [
-  {
-    icon: Globe,
-    title: "Full Stack Web Development",
-    desc: "React, Node.js, TypeScript and databases",
-  },
-  { icon: Cpu, title: "System Design", desc: "Scalability, caching, queues and sharding" },
-  {
-    icon: Database,
-    title: "Database Engineering & SQL",
-    desc: "Indexing, transactions, query tuning",
-  },
-  { icon: Bot, title: "AI & Machine Learning", desc: "LLMs, embeddings and ML foundations" },
-  { icon: Cloud, title: "Cloud & DevOps", desc: "Docker, Kubernetes, CI/CD and AWS" },
-];
-
 function LearningHubPage() {
   const { progress } = useDsaProgress();
   const { solved } = useSolvedProblems();
+  const { trackSummary } = useTrackProgress();
   const allLevels = getAllLevels();
   const next = allLevels.find(
     (l) => !progress.completedLevels[`${l.topicId}_${l.level.id}`]?.completed,
@@ -181,42 +166,122 @@ function LearningHubPage() {
         </div>
       </section>
 
-      {/* Roadmap */}
+      {/* Other paths */}
       <section>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p
-              className="text-xs uppercase tracking-[0.28em]"
-              style={{ fontFamily: "var(--font-mono)" }}
-            >
-              <span style={{ color: "var(--gold)" }}>/</span>On the roadmap
-            </p>
-            <h2
-              className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              More paths are on the way
-            </h2>
-          </div>
-        </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {ROADMAP.map((r) => (
-            <div key={r.title} className="rounded-2xl border border-border/50 bg-surface/30 p-4">
-              <div className="flex items-center justify-between">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-surface-2 text-muted-foreground">
-                  <r.icon className="h-5 w-5" />
-                </span>
-                <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Soon
-                </span>
-              </div>
-              <p className="mt-3 text-sm font-semibold">{r.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{r.desc}</p>
-            </div>
+        <p
+          className="text-xs uppercase tracking-[0.28em]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          <span style={{ color: "var(--gold)" }}>/</span>More learning paths
+        </p>
+        <h2
+          className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Go beyond DSA
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Each path has short lessons, a quiz per lesson, interview questions with model answers
+          and, where it fits, coding exercises that run in your browser.
+        </p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {tracks.map((t) => (
+            <TrackCard key={t.id} track={t} summary={trackSummary(t.id)} />
           ))}
         </div>
       </section>
     </div>
+  );
+}
+
+function TrackCard({
+  track,
+  summary,
+}: {
+  track: Track;
+  summary: ReturnType<ReturnType<typeof useTrackProgress>["trackSummary"]>;
+}) {
+  const Icon = TRACK_ICONS[track.icon];
+  const available = track.status === "available";
+  const stats = trackStats(track);
+
+  const body = (
+    <>
+      <div className="flex items-center justify-between">
+        <span
+          className="grid h-11 w-11 place-items-center rounded-xl"
+          style={{
+            background: tint(track.tone, available ? 0.16 : 0.08),
+            color: available ? track.tone : undefined,
+          }}
+        >
+          <Icon className={`h-5 w-5 ${available ? "" : "text-muted-foreground"}`} />
+        </span>
+        {available ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+            style={{ background: tint(track.tone, 0.12), color: track.tone }}
+          >
+            <CheckCircle2 className="h-3 w-3" /> Available
+          </span>
+        ) : (
+          <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Soon
+          </span>
+        )}
+      </div>
+      <p className="mt-4 font-semibold text-foreground">{track.title}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{track.tagline}</p>
+      {available ? (
+        <div className="mt-auto pt-5">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <BookOpen className="h-3.5 w-3.5" /> {stats.lessons} lessons
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Code2 className="h-3.5 w-3.5" /> {stats.exercises} exercises
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" /> ~{Math.round(stats.minutes / 60)}h
+            </span>
+          </div>
+          <ProgressBar percent={summary.percent} className="mt-4" />
+          <div className="mt-2 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">
+              {summary.completed}/{summary.total} lessons done
+            </span>
+            <span
+              className="inline-flex items-center gap-1 font-semibold"
+              style={{ color: track.tone }}
+            >
+              {summary.started ? "Continue" : "Start"} <ArrowRight className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-auto pt-5 text-xs text-muted-foreground">{track.level}</p>
+      )}
+    </>
+  );
+
+  const cls = "flex h-full flex-col rounded-2xl border bg-surface/30 p-5 transition";
+  return available ? (
+    <Link
+      to="/learning-hub/$trackId"
+      params={{ trackId: track.id }}
+      className={`${cls} hover:-translate-y-0.5 hover:bg-surface/60`}
+      style={{ borderColor: tint(track.tone, 0.35) }}
+    >
+      {body}
+    </Link>
+  ) : (
+    <Link
+      to="/learning-hub/$trackId"
+      params={{ trackId: track.id }}
+      className={`${cls} border-border/50 opacity-80 hover:opacity-100`}
+    >
+      {body}
+    </Link>
   );
 }
 
